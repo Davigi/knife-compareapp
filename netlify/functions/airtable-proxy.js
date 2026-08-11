@@ -53,7 +53,8 @@ export const handler = async (event) => {
   }
 
   const token      = process.env.AIRTABLE_TOKEN;
-  const base       = process.env.AIRTABLE_BASE;
+  // Steels + KB live in a separate base from the legacy feedback table
+  const base       = process.env.AIRTABLE_DATA_BASE || process.env.AIRTABLE_BASE;
   const steelTable = process.env.AIRTABLE_STEELS_TABLE;
   const kbTable    = process.env.AIRTABLE_KB_TABLE;
 
