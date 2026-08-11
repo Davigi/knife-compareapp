@@ -1,0 +1,18 @@
+[build]
+  command   = "npm run build"
+  publish   = "dist"
+  functions = "netlify/functions"
+
+# ── Shopify storefront proxy ──────────────────────────────────────────────────
+# Only two endpoints are forwarded — nothing else reaches the Shopify store.
+[[redirects]]
+  from   = "/api/products/*"
+  to     = "https://www.musashihamono.com/products/:splat"
+  status = 200
+  force  = true
+
+[[redirects]]
+  from   = "/api/search/*"
+  to     = "https://www.musashihamono.com/search/:splat"
+  status = 200
+  force  = true
