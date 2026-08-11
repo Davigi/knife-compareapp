@@ -80,13 +80,14 @@ export const handler = async (event) => {
         return { statusCode: 500, body: JSON.stringify({ error: "AIRTABLE_STEELS_TABLE env var not set" }) };
       }
 
+      // CSV import stores booleans as strings — fetch all and filter client-side
       const records = await fetchAll(
         token, base, steelTable,
-        "available=TRUE()",
+        "",
         ["label","aliases","category","maker","hrc",
          "retention","sharpening","corrosion","chip",
          "c_pct","cr_pct","mo_pct","v_pct","w_pct","co_pct","mn_pct","si_pct","other_comp",
-         "description"]
+         "description","available"]
       );
 
       // Shape for the app: { [label]: { ...steel } }
@@ -94,28 +95,29 @@ export const handler = async (event) => {
       const steels = {};
       for (const r of records) {
         const f = r.fields;
+        // Skip steels explicitly marked unavailable (handles string "false" from CSV import)
+        const avail = String(f.available ?? "true").toLowerCase();
+        if (avail === "false") continue;
+        // Build composition — omit empty values so the UI stays clean
+        const comp = {};
+        const compMap = { C:"c_pct", Cr:"cr_pct", Mo:"mo_pct", V:"v_pct", W:"w_pct", Co:"co_pct", Mn:"mn_pct", Si:"si_pct", Other:"other_comp" };
+        for (const [el, key] of Object.entries(compMap)) {
+          if (f[key]) comp[el] = f[key];
+        }
         const entry = {
-          label:       f.label       || "",
-          aliases:    (f.aliases     || "").split(",").map((a) => a.trim()).filter(Boolean),
-          category:   f.category     || "",
-          maker:      f.maker        || "",
-          hrc:        f.hrc          || "",
+          label:      f.label  || "",
+          // aliases array — used to build lookup keys
+          aliases:   (f.aliases || "").split(",").map((a) => a.trim()).filter(Boolean),
+          // Field names kept identical to original hardcoded STEELS shape
+          cat:        f.category    || "",
+          maker:      f.maker       || "",
+          hrc:        f.hrc         || "",
           retention:  Number(f.retention  ?? 0),
           sharpening: Number(f.sharpening ?? 0),
           corrosion:  Number(f.corrosion  ?? 0),
           chip:       Number(f.chip       ?? 0),
-          composition: {
-            C:   f.c_pct    || "",
-            Cr:  f.cr_pct   || "",
-            Mo:  f.mo_pct   || "",
-            V:   f.v_pct    || "",
-            W:   f.w_pct    || "",
-            Co:  f.co_pct   || "",
-            Mn:  f.mn_pct   || "",
-            Si:  f.si_pct   || "",
-            Other: f.other_comp || "",
-          },
-          description: f.description || "",
+          comp,
+          desc:       f.description || "",
         };
 
         // Index by canonical label
@@ -145,18 +147,26 @@ export const handler = async (event) => {
       // Optionally filter by category (case-insensitive)
       const rawCategory = event.queryStringParameters?.category || "";
       const safeCategory = rawCategory.replace(/[^a-zA-Z0-9 &/-]/g, "").slice(0, 60);
+      // CSV import stores booleans as strings so we can't use published=TRUE() —
+      // fetch all and filter client-side instead
       const formula = safeCategory
-        ? `AND(published=TRUE(), LOWER(category)=LOWER("${safeCategory}"))`
-        : "published=TRUE()";
+        ? `LOWER(category)=LOWER("${safeCategory}")`
+        : "";
 
       const records = await fetchAll(
         token, base, kbTable,
         formula,
-        ["category","group","sort_order","title","body","image_url","link","shape_key"]
+        ["category","group","sort_order","title","body","image_url","link","shape_key","published"]
       );
 
+      // Filter out explicitly unpublished rows (handles string "false" from CSV import)
+      const published = records.filter(r => {
+        const p = String(r.fields.published ?? "true").toLowerCase();
+        return p !== "false";
+      });
+
       // Sort by category → group → sort_order
-      records.sort((a, b) => {
+      published.sort((a, b) => {
         const ca = a.fields.category || "", cb = b.fields.category || "";
         if (ca !== cb) return ca.localeCompare(cb);
         const ga = a.fields.group || "", gb = b.fields.group || "";
@@ -164,7 +174,7 @@ export const handler = async (event) => {
         return (Number(a.fields.sort_order) || 0) - (Number(b.fields.sort_order) || 0);
       });
 
-      const items = records.map((r) => ({
+      const items = published.map((r) => ({
         category:  r.fields.category  || "",
         group:     r.fields.group     || "",
         sortOrder: Number(r.fields.sort_order ?? 0),
