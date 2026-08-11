@@ -1,0 +1,137 @@
+import { useState, useEffect } from "react";
+import { METRICS } from "./constants.js";
+
+// ── String / URL helpers ──────────────────────────────────────────────────────
+export const isUrl = (v) =>
+  v.includes("musashihamono.com") || v.startsWith("http");
+
+export const fmtPrice = (n) =>
+  isNaN(n) ? "—" : Math.round(n).toLocaleString();
+
+export const extractHandle = (v) => {
+  const t = v.trim();
+  if (t.includes("/products/"))
+    return t.split("/products/")[1].split("?")[0].split("/")[0];
+  return t.split("?")[0];
+};
+
+export const norm = (s) =>
+  s.toLowerCase().replace(/#/g, "").replace(/\s+/g, " ").trim();
+
+// ── Steel detection ───────────────────────────────────────────────────────────
+// steelPairs: [normalizedKey, steelObject][] sorted longest-first
+export const detectSteel = (tags = [], title = "", body = "", steelPairs = []) => {
+  const srcMain = norm([...tags, title].join(" "));
+  for (const [key, val] of steelPairs) {
+    if (srcMain.includes(key)) return val;
+  }
+  const srcBody = norm(body);
+  for (const [key, val] of steelPairs) {
+    if (key.length >= 4 && srcBody.includes(key)) return val;
+  }
+  return null;
+};
+
+// ── Product data helpers ──────────────────────────────────────────────────────
+export const parseSpecs = (html) => {
+  if (!html) return [];
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const specs = [];
+  doc.querySelectorAll("tr").forEach((row) => {
+    const cells = row.querySelectorAll("td,th");
+    if (cells.length >= 2) {
+      const label = cells[0].textContent.trim();
+      const value = cells[1].textContent.trim();
+      if (label && value && label.length < 60) specs.push({ label, value });
+    }
+  });
+  if (specs.length === 0) {
+    doc.querySelectorAll("p,li").forEach((el) => {
+      const t = el.textContent.trim();
+      const m = t.match(/^([A-Za-z][^:]{1,40}):\s*(.+)$/);
+      if (m) specs.push({ label: m[1].trim(), value: m[2].trim() });
+    });
+  }
+  return specs;
+};
+
+export const htmlToText = (html) => {
+  if (!html) return "";
+  return (
+    new DOMParser().parseFromString(html, "text/html").body.textContent || ""
+  );
+};
+
+// ── Chart scaling helpers ─────────────────────────────────────────────────────
+export const computeRanges = (knives) => {
+  const active = knives.filter((k) => k?.steel);
+  return Object.fromEntries(
+    METRICS.map((m) => {
+      const vals = active.map((k) => k.steel[m]);
+      if (vals.length <= 1) return [m, { lo: 0, hi: 10 }];
+      const mn = Math.min(...vals);
+      const mx = Math.max(...vals);
+      const pad = Math.max(1, (mx - mn) * 0.3);
+      return [m, { lo: Math.max(0, mn - pad), hi: Math.min(10, mx + pad * 0.3) }];
+    })
+  );
+};
+
+export const scaleFrac = (v, lo, hi) => {
+  const FLOOR = 0.15;
+  if (hi <= lo) return 0.7;
+  return FLOOR + ((v - lo) / (hi - lo)) * (1 - FLOOR);
+};
+
+// ── Airtable feedback ─────────────────────────────────────────────────────────
+export const postNote = async ({ product, handle, issueType, comment, reporter }) => {
+  const res = await fetch("/.netlify/functions/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ product, handle, issueType, comment, reporter }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || `Server error ${res.status}`);
+  }
+  return res.json();
+};
+
+// ── Knowledge base map builder ────────────────────────────────────────────────
+import { KB_HEADINGS } from "./constants.js";
+
+export const buildInfoMap = (kbData) => {
+  const map = {};
+  for (const item of kbData) {
+    if (!map[item.category]) {
+      map[item.category] = {
+        heading: KB_HEADINGS[item.category] || item.category,
+        groups: [],
+      };
+    }
+    let group = map[item.category].groups.find((g) => g.name === item.group);
+    if (!group) {
+      group = { name: item.group, items: [] };
+      map[item.category].groups.push(group);
+    }
+    group.items.push({
+      n: item.title,
+      d: item.body,
+      img: item.image || "",
+      link: item.link || "",
+      shape: item.shape || "",
+    });
+  }
+  return map;
+};
+
+// ── Responsive hook ───────────────────────────────────────────────────────────
+export const useIsMobile = () => {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 640);
+  useEffect(() => {
+    const h = () => setMobile(window.innerWidth < 640);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+  return mobile;
+};

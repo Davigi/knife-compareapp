@@ -1,111 +1,95 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+/* Google Fonts must be first — @import rules must precede all other rules */
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500;600&display=swap');
+@import "tailwindcss";
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+/* ── Musashi design tokens ─────────────────────────────────────────────────── */
+@theme {
+  /* Colors */
+  --color-musashi-bg:        #fafaf8;
+  --color-musashi-surface:   #ffffff;
+  --color-musashi-dark:      #111111;
+  --color-musashi-text:      #1a1a16;
+  --color-musashi-muted:     #6b6b66;
+  --color-musashi-subtle:    #9a9a94;
+  --color-musashi-faint:     #c0c0ba;
+  --color-musashi-border:    #e8e8e3;
+  --color-musashi-border-lt: #f0f0ea;
+  --color-musashi-border-md: #e0e0da;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Category badge colors */
+  --color-carbon-text:       #8a6820;
+  --color-carbon-bg:         #fdf5e4;
+  --color-semi-text:         #2a7a40;
+  --color-semi-bg:           #e8f5ee;
+  --color-stainless-text:    #2060a0;
+  --color-stainless-bg:      #e4eef8;
+  --color-pm-text:           #6040a0;
+  --color-pm-bg:             #ede8f8;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  /* Comparison accent colors */
+  --color-accent-0:          #2060a0;
+  --color-accent-1:          #1a8a50;
+  --color-accent-2:          #7040a0;
+
+  /* Typography */
+  --font-sans: 'Jost', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --font-mono: ui-monospace, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+/* ── Global base ────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+html, body, #root {
+  min-height: 100vh;
+  background: var(--color-musashi-bg);
+  color: var(--color-musashi-text);
+  font-family: var(--font-sans);
 }
 
 body {
-  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+a {
+  color: var(--color-musashi-text);
+  text-decoration: none;
+}
+a:hover { opacity: 0.6; }
+
+button, input {
+  font-family: var(--font-sans);
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+/* ── Animations ─────────────────────────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 80%, 100% { opacity: 0.25; transform: scale(0.75); }
+  40%            { opacity: 1;    transform: scale(1); }
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+/* ── Collapsible ────────────────────────────────────────────────────────────── */
+.coll-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
+.coll-body.open { max-height: 1200px; }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
+.rot-plus { display: inline-block; transition: transform 0.2s; }
+.rot-plus.open { transform: rotate(45deg); }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: #d8d8d2; }
+
+/* ── Input focus ────────────────────────────────────────────────────────────── */
+input:focus {
+  border-color: var(--color-musashi-text) !important;
+  outline: none;
 }
