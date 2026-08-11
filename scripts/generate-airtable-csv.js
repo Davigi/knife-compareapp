@@ -1,0 +1,427 @@
+/**
+ * generate-airtable-csv.js
+ *
+ * Run once: node scripts/generate-airtable-csv.js
+ * Outputs: scripts/steels.csv and scripts/knowledge_base.csv
+ * Import both files into Airtable (each CSV = one table).
+ */
+
+import { writeFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dir = dirname(fileURLToPath(import.meta.url));
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const esc = (v) => {
+  const s = String(v ?? "");
+  return s.includes(",") || s.includes('"') || s.includes("\n")
+    ? `"${s.replace(/"/g, '""')}"`
+    : s;
+};
+
+const row = (cols) => cols.map(esc).join(",");
+
+// ─── STEELS ───────────────────────────────────────────────────────────────────
+// Canonical records only (no "See X" aliases).
+// The "aliases" field holds every alternate lookup key the app uses to detect
+// a steel name in Shopify product tags / body HTML.
+
+const STEELS = [
+  {
+    label: "White Steel #3", aliases: "white steel 3,shirogami 3,white 3",
+    category: "Carbon", maker: "Hitachi", hrc: "59–62",
+    retention: 6, sharpening: 10, corrosion: 1, chip: 9,
+    c: "0.80–0.90%", cr: "", mo: "", v: "", w: "", co: "", mn: "0.10–0.20%", si: "0.10–0.20%", other: "",
+    description: "Most accessible Shirogami. Low carbon gives exceptional ease of sharpening and a keen initial edge with lower edge retention than #1 or #2. Highly reactive — dry immediately after every use.",
+    available: true,
+  },
+  {
+    label: "White Steel #2", aliases: "white steel 2,shirogami 2,white 2",
+    category: "Carbon", maker: "Hitachi", hrc: "61–64",
+    retention: 7, sharpening: 9, corrosion: 1, chip: 8,
+    c: "1.00–1.10%", cr: "", mo: "", v: "", w: "", co: "", mn: "0.20–0.30%", si: "0.10–0.20%", other: "P ≤0.025%, S ≤0.004%",
+    description: "Benchmark of Japanese kitchen knife carbon steels. High purity allows an extremely sharp edge. Very reactive — dry immediately after use.",
+    available: true,
+  },
+  {
+    label: "White Steel #1", aliases: "white steel 1,shirogami 1,white 1",
+    category: "Carbon", maker: "Hitachi", hrc: "62–65",
+    retention: 8, sharpening: 8, corrosion: 1, chip: 7,
+    c: "1.25–1.35%", cr: "", mo: "", v: "", w: "", co: "", mn: "0.20–0.30%", si: "0.10–0.20%", other: "P ≤0.025%, S ≤0.004%",
+    description: "Purest and highest-carbon Shirogami. Extremely refined edge — used in top Honyaki knives. More brittle than #2. Requires expert care.",
+    available: true,
+  },
+  {
+    label: "Blue Steel #2", aliases: "blue steel 2,aogami 2,blue 2,aogami2",
+    category: "Carbon", maker: "Hitachi", hrc: "62–63",
+    retention: 8, sharpening: 7, corrosion: 2, chip: 8,
+    c: "1.00–1.20%", cr: "0.20–0.50%", mo: "", v: "", w: "1.50–2.00%", co: "", mn: "0.20–0.30%", si: "0.10–0.20%", other: "",
+    description: "Most popular carbon steel in Japanese knife making. Tungsten and chromium improve toughness and retention while remaining accessible to sharpen.",
+    available: true,
+  },
+  {
+    label: "Blue Steel #1", aliases: "blue steel 1,aogami 1,blue 1,aogami1",
+    category: "Carbon", maker: "Hitachi", hrc: "62–65",
+    retention: 9, sharpening: 6, corrosion: 2, chip: 7,
+    c: "1.20–1.40%", cr: "0.30–0.50%", mo: "", v: "", w: "1.50–2.00%", co: "", mn: "0.20–0.30%", si: "0.10–0.20%", other: "",
+    description: "Higher carbon than Blue #2. Superior edge retention. More demanding to sharpen — for experienced users.",
+    available: true,
+  },
+  {
+    label: "Blue Super", aliases: "blue super,aogami super",
+    category: "Carbon", maker: "Hitachi", hrc: "63–67",
+    retention: 10, sharpening: 5, corrosion: 3, chip: 8,
+    c: "1.40–1.50%", cr: "0.30–0.50%", mo: "0.30–0.50%", v: "0.30–0.50%", w: "2.00–2.50%", co: "", mn: "0.20–0.40%", si: "0.10–0.40%", other: "",
+    description: "Pinnacle of Yasugi carbon steel. Mo and V push hardness and retention to the absolute limits without becoming brittle. Expert sharpening and care required.",
+    available: true,
+  },
+  {
+    label: "V-Toku 2", aliases: "v-toku 2",
+    category: "Carbon", maker: "Hitachi", hrc: "62–65",
+    retention: 9, sharpening: 6, corrosion: 2, chip: 7,
+    c: "1.00–1.20%", cr: "0.10–0.30%", mo: "", v: "0.20–0.30%", w: "", co: "", mn: "0.20–0.30%", si: "0.10–0.20%", other: "",
+    description: "Hitachi carbon steel with vanadium additions. Vanadium carbides improve wear resistance beyond standard Blue steels.",
+    available: true,
+  },
+  {
+    label: "SK Steel", aliases: "sk steel",
+    category: "Carbon", maker: "JIS", hrc: "58–62",
+    retention: 5, sharpening: 9, corrosion: 1, chip: 9,
+    c: "0.95–1.10%", cr: "", mo: "", v: "", w: "", co: "", mn: "0.10–0.50%", si: "0.10–0.35%", other: "",
+    description: "JIS standard basic tool steel. Lower performance but very easy to sharpen. Entry-level traditional knives. Highly reactive.",
+    available: true,
+  },
+  {
+    label: "ApexUltra", aliases: "apex ultra",
+    category: "Carbon", maker: "Takefu", hrc: "64–67",
+    retention: 10, sharpening: 3, corrosion: 3, chip: 7,
+    c: "1.55–1.65%", cr: "0.50%", mo: "0.50%", v: "0.50%", w: "2.00%", co: "", mn: "0.30%", si: "", other: "",
+    description: "Ultra-high carbon steel. Extreme edge retention. Requires specialist heat treatment, expert sharpening and meticulous care.",
+    available: true,
+  },
+  {
+    label: "SLD", aliases: "sld",
+    category: "Semi-stainless", maker: "Hitachi", hrc: "60–63",
+    retention: 8, sharpening: 7, corrosion: 5, chip: 8,
+    c: "0.95–1.00%", cr: "7.80–8.50%", mo: "1.00–1.50%", v: "0.20–0.30%", w: "", co: "", mn: "0.30–0.60%", si: "0.20–0.50%", other: "",
+    description: "Semi-stainless tool steel. ~8% Cr develops a protective patina rather than rusting aggressively. Excellent toughness and good edge retention.",
+    available: true,
+  },
+  {
+    label: "SKD", aliases: "skd",
+    category: "Semi-stainless", maker: "JIS", hrc: "62–64",
+    retention: 9, sharpening: 5, corrosion: 6, chip: 7,
+    c: "1.40–1.60%", cr: "11.00–13.00%", mo: "0.80–1.20%", v: "0.70–1.00%", w: "", co: "", mn: "0.20–0.50%", si: "", other: "",
+    description: "High-carbon, high-chromium tool steel. ~12% Cr offers meaningful corrosion resistance. High carbide volume delivers excellent edge retention.",
+    available: true,
+  },
+  {
+    label: "HAP-40", aliases: "hap-40,hap40,hap 40",
+    category: "Semi-stainless", maker: "Hitachi", hrc: "66–67",
+    retention: 10, sharpening: 4, corrosion: 5, chip: 8,
+    c: "1.27%", cr: "4.00%", mo: "5.00%", v: "3.00%", w: "6.00%", co: "8.00%", mn: "0.30%", si: "0.45%", other: "",
+    description: "High-speed powder tool steel. W, Mo, V and Co push hardness to 66–67 HRC. Outstanding edge retention. Requires diamond or CBN stones.",
+    available: true,
+  },
+  {
+    label: "AUS-8", aliases: "aus-8,aus8,aus 8",
+    category: "Stainless", maker: "Aichi", hrc: "57–59",
+    retention: 5, sharpening: 8, corrosion: 7, chip: 8,
+    c: "0.70–0.75%", cr: "13.00–14.50%", mo: "0.10–0.30%", v: "0.10–0.26%", w: "", co: "", mn: "0.50%", si: "1.00%", other: "Ni 0.49%",
+    description: "Reliable mid-range Japanese stainless. Balanced performance, easy to sharpen, forgiving of rough use, good corrosion resistance.",
+    available: true,
+  },
+  {
+    label: "MV (Molybdenum Vanadium)", aliases: "mv (molybdenum vanadium)",
+    category: "Stainless", maker: "Various", hrc: "56–58",
+    retention: 4, sharpening: 9, corrosion: 8, chip: 9,
+    c: "0.60–0.70%", cr: "13.00–14.00%", mo: "0.50–1.00%", v: "0.10–0.20%", w: "", co: "", mn: "", si: "", other: "",
+    description: "Basic stainless designation. Lower carbon limits edge retention but delivers excellent toughness and corrosion resistance. Very easy to sharpen.",
+    available: true,
+  },
+  {
+    label: "Swedish Steel", aliases: "swedish steel,sweden",
+    category: "Stainless", maker: "Sandvik", hrc: "60–62",
+    retention: 6, sharpening: 8, corrosion: 7, chip: 8,
+    c: "0.65–0.70%", cr: "13.50%", mo: "0.10%", v: "", w: "", co: "", mn: "0.65%", si: "0.40%", other: "",
+    description: "High-purity Scandinavian stainless (19C27). Fine microstructure allows sharpness comparable to carbon steels. Consistent quality.",
+    available: true,
+  },
+  {
+    label: "VG-1", aliases: "vg1,vg-1,vg 1",
+    category: "Stainless", maker: "Takefu", hrc: "57–60",
+    retention: 5, sharpening: 8, corrosion: 8, chip: 8,
+    c: "0.60–0.75%", cr: "14.00–15.00%", mo: "0.10%", v: "", w: "", co: "", mn: "0.50%", si: "0.40%", other: "",
+    description: "Entry-level VG series by Takefu. Good corrosion resistance and easy to sharpen. Low-maintenance for everyday use.",
+    available: true,
+  },
+  {
+    label: "VG-5", aliases: "vg5,vg-5,vg 5",
+    category: "Stainless", maker: "Takefu", hrc: "59–61",
+    retention: 6, sharpening: 7, corrosion: 8, chip: 7,
+    c: "0.80–0.90%", cr: "14.00–15.00%", mo: "0.20%", v: "0.10–0.20%", w: "", co: "", mn: "0.50%", si: "0.50%", other: "",
+    description: "Mid-range VG series between VG-1 and VG-10. Good corrosion resistance. Easier to sharpen than VG-10.",
+    available: true,
+  },
+  {
+    label: "Ginsan / Silver #3", aliases: "ginsan,silver #3,gin san,gingami #3,silver steel #3,silver steel 3,silver 3,gin-san",
+    category: "Stainless", maker: "Hitachi", hrc: "61–62",
+    retention: 7, sharpening: 8, corrosion: 8, chip: 7,
+    c: "0.95–1.10%", cr: "13.00–14.50%", mo: "", v: "", w: "", co: "", mn: "0.50–0.70%", si: "0.20–0.50%", other: "P ≤0.025%, S ≤0.004%",
+    description: "Carbon steel performance with stainless convenience. Achieves sharpness close to White #2. Easier to sharpen than VG-10. Preferred by many professional chefs.",
+    available: true,
+  },
+  {
+    label: "Chromax", aliases: "chromax",
+    category: "Stainless", maker: "Hitachi", hrc: "61–63",
+    retention: 6, sharpening: 8, corrosion: 8, chip: 8,
+    c: "0.70–0.75%", cr: "13.50%", mo: "0.10%", v: "", w: "", co: "", mn: "0.50%", si: "0.40%", other: "",
+    description: "Hitachi stainless emphasising corrosion resistance and ease of sharpening. Good for humid environments.",
+    available: true,
+  },
+  {
+    label: "ATS-34", aliases: "ats34",
+    category: "Stainless", maker: "Hitachi", hrc: "60–62",
+    retention: 7, sharpening: 6, corrosion: 7, chip: 7,
+    c: "1.05%", cr: "14.00%", mo: "4.00%", v: "", w: "", co: "", mn: "0.40%", si: "0.35%", other: "",
+    description: "Premium conventional stainless equivalent to 154CM. Gold standard before PM steels. High Mo improves toughness and corrosion resistance.",
+    available: true,
+  },
+  {
+    label: "VG-10", aliases: "vg-10,vg10,vg 10",
+    category: "Stainless", maker: "Takefu", hrc: "60–62",
+    retention: 7, sharpening: 6, corrosion: 8, chip: 7,
+    c: "1.00%", cr: "14.50–15.50%", mo: "0.90–1.20%", v: "0.10–0.30%", w: "", co: "1.30–1.50%", mn: "0.50%", si: "0.40%", other: "",
+    description: "Most widely-used premium Japanese stainless. Cobalt gives better edge retention than composition alone suggests. The benchmark for accessible high-performance stainless.",
+    available: true,
+  },
+  {
+    label: "VG-MAX", aliases: "vg-max",
+    category: "Stainless", maker: "Takefu", hrc: "60–62",
+    retention: 8, sharpening: 6, corrosion: 8, chip: 7,
+    c: "1.00%", cr: "14.50–15.50%", mo: "0.90–1.20%", v: "0.30%", w: "", co: "2.50%", mn: "0.50%", si: "0.50%", other: "",
+    description: "Upgraded proprietary VG-10 for Shun. Higher Co and V improve edge retention.",
+    available: true,
+  },
+  {
+    label: "AUS-10", aliases: "aus-10,aus10,aus 10",
+    category: "Stainless", maker: "Aichi", hrc: "60–62",
+    retention: 7, sharpening: 6, corrosion: 8, chip: 8,
+    c: "0.95–1.10%", cr: "13.00–14.50%", mo: "0.10–0.30%", v: "0.10–0.27%", w: "", co: "", mn: "0.50%", si: "1.00%", other: "Ni 0.49%",
+    description: "Premium AUS series. Higher C and V than AUS-8 improve edge retention. Nickel adds toughness.",
+    available: true,
+  },
+  {
+    label: "COSP (Cobalt Special)", aliases: "cosp (cobalt special)",
+    category: "Stainless", maker: "Takefu", hrc: "62–64",
+    retention: 8, sharpening: 6, corrosion: 7, chip: 8,
+    c: "0.80–0.90%", cr: "13.00–14.00%", mo: "0.50%", v: "0.20%", w: "", co: "3.00–5.00%", mn: "0.50%", si: "", other: "",
+    description: "Cobalt-enhanced stainless. High Co allows greater hardness improving edge retention beyond what carbon content suggests.",
+    available: true,
+  },
+  {
+    label: "ZA-18", aliases: "za-18",
+    category: "Stainless", maker: "Takefu", hrc: "63–65",
+    retention: 8, sharpening: 5, corrosion: 9, chip: 7,
+    c: "1.00%", cr: "18.00%", mo: "1.30%", v: "0.20%", w: "", co: "1.50%", mn: "0.40%", si: "0.40%", other: "",
+    description: "18% Cr gives near-immune rust resistance. Ideal for humid professional environments. Cobalt improves hardness.",
+    available: true,
+  },
+  {
+    label: "SG2 / R2", aliases: "sg2,r2,sg-2,sg 2",
+    category: "Stainless PM", maker: "Takefu / Kobelco", hrc: "62–64",
+    retention: 9, sharpening: 5, corrosion: 8, chip: 8,
+    c: "1.25%", cr: "14.00%", mo: "2.30%", v: "1.80%", w: "", co: "1.50%", mn: "0.40%", si: "0.50%", other: "P ≤0.030%, S ≤0.030%",
+    description: "Benchmark powder metallurgy stainless steel. Uniform carbide distribution delivers exceptional edge retention. The endgame steel for most professionals.",
+    available: true,
+  },
+  {
+    label: "VG XEOS", aliases: "vg xeos",
+    category: "Stainless PM", maker: "Takefu", hrc: "63–65",
+    retention: 9, sharpening: 5, corrosion: 8, chip: 7,
+    c: "1.20–1.40%", cr: "14.00–15.00%", mo: "2.00–2.50%", v: "1.50–2.00%", w: "", co: "1.00%", mn: "0.40%", si: "", other: "",
+    description: "Advanced PM stainless bridging VG-10 and SG2. High V and Mo push edge retention well beyond VG-10.",
+    available: true,
+  },
+  {
+    label: "SRS-13", aliases: "srs-13",
+    category: "Stainless PM", maker: "Nachi", hrc: "63–65",
+    retention: 9, sharpening: 4, corrosion: 8, chip: 8,
+    c: "1.30%", cr: "13.50%", mo: "2.00%", v: "3.00%", w: "", co: "1.00%", mn: "0.50%", si: "0.30%", other: "",
+    description: "PM stainless by Nachi-Fujikoshi. High V (3%) produces fine vanadium carbides for exceptional retention.",
+    available: true,
+  },
+  {
+    label: "FAXR2", aliases: "faxr2",
+    category: "Stainless PM", maker: "Takefu", hrc: "63–64",
+    retention: 9, sharpening: 4, corrosion: 8, chip: 8,
+    c: "1.30%", cr: "14.00%", mo: "2.50%", v: "2.00%", w: "", co: "1.50%", mn: "0.40%", si: "0.40%", other: "",
+    description: "PM stainless close to SG2. High V and Mo for excellent wear resistance.",
+    available: true,
+  },
+  {
+    label: "SPG STRIX", aliases: "spg strix",
+    category: "Stainless PM", maker: "Takefu", hrc: "63–64",
+    retention: 9, sharpening: 4, corrosion: 8, chip: 8,
+    c: "1.40%", cr: "14.00%", mo: "2.00%", v: "2.40%", w: "", co: "1.00%", mn: "0.40%", si: "0.40%", other: "",
+    description: "Premium PM stainless at or above SG2. Very high V carbide content for exceptional edge retention.",
+    available: true,
+  },
+  {
+    label: "ZDP-189", aliases: "zdp-189,zdp189,zdp 189",
+    category: "Stainless PM", maker: "Hitachi", hrc: "67–69",
+    retention: 10, sharpening: 2, corrosion: 7, chip: 5,
+    c: "3.00%", cr: "20.00%", mo: "1.40%", v: "", w: "", co: "", mn: "0.50%", si: "0.40%", other: "",
+    description: "The extreme end of knife steel. 3% C and 20% Cr push hardness to 67–69 HRC. Very brittle — expert-only.",
+    available: true,
+  },
+];
+
+// ─── KNOWLEDGE BASE ────────────────────────────────────────────────────────────
+
+const KB = [
+  // ── Metal ──
+  { category:"Metal", group:"Carbon Steels", sort:1,  title:"SK Steel — HRC 58–62",                body:"C 0.95–1.10%. JIS standard basic tool steel. Entry-level, very easy to sharpen. Highly reactive.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Carbon Steels", sort:2,  title:"White Steel #3 (Shirogami 3) — HRC 59–62", body:"C 0.80–0.90%. Most forgiving Shirogami. Easiest to sharpen, lower retention. Very reactive.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Carbon Steels", sort:3,  title:"White Steel #2 (Shirogami 2) — HRC 61–64", body:"C 1.00–1.10%. Benchmark carbon steel. Extremely sharp, easy to sharpen. Very reactive.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Carbon Steels", sort:4,  title:"Blue Steel #2 (Aogami 2) — HRC 62–63", body:"C 1.0–1.2%, W 1.5–2.0%, Cr 0.2–0.5%. Most popular carbon knife steel. Excellent chip resistance.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Carbon Steels", sort:5,  title:"White Steel #1 (Shirogami 1) — HRC 62–65", body:"C 1.25–1.35%. Purest Shirogami. Top Honyaki knives. More brittle than #2.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Carbon Steels", sort:6,  title:"Blue Steel #1 (Aogami 1) — HRC 62–65", body:"C 1.2–1.4%, W 1.5–2.0%. Superior retention. For experienced users.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Carbon Steels", sort:7,  title:"V-Toku 2 — HRC 62–65",              body:"C 1.0–1.2%, V 0.2–0.3%. Vanadium carbides improve wear resistance. Fine grain.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Carbon Steels", sort:8,  title:"Blue Super (Aogami Super) — HRC 63–67", body:"C 1.4–1.5%, W 2.0–2.5%, Mo, V. Pinnacle of Yasugi steel. Expert care required.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Carbon Steels", sort:9,  title:"ApexUltra (Takefu) — HRC 64–67",    body:"C 1.55–1.65%, W, V, Mo. Extreme edge retention. Expert-only steel.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Semi-Stainless", sort:10, title:"SLD (Hitachi) — HRC 60–63",         body:"C 0.95–1.0%, Cr 7.8–8.5%, Mo 1.5%. Patinas rather than rusts. Excellent toughness.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Semi-Stainless", sort:11, title:"SKD (JIS SKD11) — HRC 62–64",       body:"C 1.4–1.6%, Cr 11–13%. High carbide volume for excellent retention.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Semi-Stainless", sort:12, title:"HAP-40 (Hitachi PM) — HRC 66–67",   body:"C 1.27%, Cr 4%, W 6%, Mo 5%, V 3%, Co 8%. Extreme hardness. Requires diamond stones.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:13, title:"MV (Molybdenum Vanadium) — HRC 56–58", body:"C 0.60–0.70%, Cr 13–14%. Entry-level. Low retention, excellent toughness.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:14, title:"AUS-8 (Aichi) — HRC 57–59",         body:"C 0.70–0.75%, Cr 13–14.5%. Balanced, forgiving. Easy to sharpen.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:15, title:"VG-1 (Takefu) — HRC 57–60",         body:"C 0.60–0.75%, Cr 14–15%. Entry VG series. Low maintenance.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:16, title:"VG-5 (Takefu) — HRC 59–61",         body:"C 0.80–0.90%, Cr 14–15%. Mid-range VG. Solid everyday performer.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:17, title:"ATS-34 (Hitachi) — HRC 60–62",      body:"C 1.05%, Cr 14%, Mo 4%. Gold standard before PM steels.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:18, title:"Swedish Steel (Sandvik) — HRC 60–62", body:"C 0.65–0.70%, Cr 13.5%. High-purity. Sharpness comparable to carbon steels.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:19, title:"VG-10 (Takefu) — HRC 60–62",        body:"C 1.0%, Cr 14.5–15.5%, Mo 1%, Co 1.5%. Industry benchmark premium stainless.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:20, title:"VG-MAX (Takefu) — HRC 60–62",       body:"C 1.0%, Cr 15%, V 0.3%, Co 2.5%. Upgraded VG-10. Higher retention.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:21, title:"AUS-10 (Aichi) — HRC 60–62",        body:"C 0.95–1.10%, Cr 13–14.5%, Ni. Higher retention than AUS-8.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:22, title:"Ginsan / Silver #3 (Hitachi) — HRC 61–62", body:"C 0.95–1.10%, Cr 13–14.5%. Carbon steel performance, stainless maintenance.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:23, title:"Chromax (Hitachi) — HRC 61–63",     body:"C 0.70–0.75%, Cr 13.5%. Emphasis on corrosion resistance. Easy sharpening.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:24, title:"COSP / Cobalt Special — HRC 62–64", body:"C 0.80–0.90%, Cr 13–14%, Co 3–5%. High cobalt allows greater hardness.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Stainless",       sort:25, title:"ZA-18 (Takefu) — HRC 63–65",        body:"C 1.0%, Cr 18%, Co. Near-immune to rust. Ideal for humid kitchens.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Powder Metallurgy (PM)", sort:26, title:"SG2 / R2 — HRC 62–64",       body:"C 1.25%, Cr 14%, V 1.8%, Mo 2.3%. Benchmark PM stainless. Endgame for most professionals.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Powder Metallurgy (PM)", sort:27, title:"FAXR2 (Takefu) — HRC 63–64", body:"C 1.3%, Cr 14%, Mo 2.5%, V 2.0%. Close to SG2. Excellent wear resistance.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Powder Metallurgy (PM)", sort:28, title:"SPG STRIX (Takefu) — HRC 63–64", body:"C 1.4%, Cr 14%, V 2.4%, Mo 2.0%. At or above SG2 in performance.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Powder Metallurgy (PM)", sort:29, title:"VG XEOS (Takefu) — HRC 63–65", body:"C 1.2–1.4%, V 1.5–2.0%, Mo 2.0–2.5%. Bridges VG-10 and SG2.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Powder Metallurgy (PM)", sort:30, title:"SRS-13 (Nachi-Fujikoshi) — HRC 63–65", body:"C 1.3%, Cr 13.5%, V 3%. High vanadium for outstanding retention.", image:"", link:"", shape:"" },
+  { category:"Metal", group:"Powder Metallurgy (PM)", sort:31, title:"ZDP-189 (Hitachi) — HRC 67–69", body:"C 3.0%, Cr 20%. Extreme hardness. Very brittle. Expert-only.", image:"", link:"", shape:"" },
+
+  // ── Shape ──
+  { category:"Shape", group:"Double Bevel", sort:1,  title:"Gyuto",     body:"Japanese chef's knife. Versatile all-purpose blade. 180–270mm.", image:"/Gyuto.png", link:"", shape:"gyuto" },
+  { category:"Shape", group:"Double Bevel", sort:2,  title:"Santoku",   body:"Three virtues: meat, fish, vegetables. Shorter, lighter than gyuto. 165–190mm.", image:"/Santoku.png", link:"", shape:"santoku" },
+  { category:"Shape", group:"Double Bevel", sort:3,  title:"Nakiri",    body:"Vegetable knife. Straight edge for push-cutting. 150–180mm.", image:"/Nakiri.png", link:"", shape:"nakiri" },
+  { category:"Shape", group:"Double Bevel", sort:4,  title:"Sujihiki",  body:"Slicing knife. Long, thin blade minimises tearing. 240–330mm.", image:"/Sujihiki.png", link:"", shape:"sujihiki" },
+  { category:"Shape", group:"Double Bevel", sort:5,  title:"Bunka",     body:"Reverse tanto tip. Great for precision cuts. 165–200mm.", image:"/Bunka.png", link:"", shape:"bunka" },
+  { category:"Shape", group:"Double Bevel", sort:6,  title:"Honesuki",  body:"Boning knife. Stiff triangular blade for poultry. 145–165mm.", image:"/Honesuki.png", link:"", shape:"honesuki" },
+  { category:"Shape", group:"Double Bevel", sort:7,  title:"Petty",     body:"Small utility knife for detail work and peeling. 120–180mm.", image:"/Petty.png", link:"", shape:"petty" },
+  { category:"Shape", group:"Single Bevel (Traditional)", sort:8,  title:"Deba",      body:"Heavy fish butchery knife. Handles heads, bones and scales. 150–210mm.", image:"/Deba.png", link:"", shape:"deba" },
+  { category:"Shape", group:"Single Bevel (Traditional)", sort:9,  title:"Yanagiba",  body:"Sashimi slicer. Long pull-cut for clean fish slices. 240–360mm.", image:"/Yanagiba.png", link:"", shape:"yanagiba" },
+  { category:"Shape", group:"Single Bevel (Traditional)", sort:10, title:"Usuba",     body:"Vegetable knife for katsuramuki thin sheets. 180–240mm.", image:"/Usuba.png", link:"", shape:"usuba" },
+  { category:"Shape", group:"Single Bevel (Traditional)", sort:11, title:"Kiritsuke", body:"Multi-purpose single-bevel. Extremely difficult to master. Status symbol.", image:"/Kiritsuke.png", link:"", shape:"kiritsuke" },
+
+  // ── Makers ──
+  { category:"Makers", group:"Sakai Region", sort:1, title:"Sakai Takayuki", body:"One of the largest Sakai producers. Wide range from entry-level to professional grade.", image:"", link:"https://www.musashihamono.com/search?q=Sakai+Takayuki", shape:"" },
+  { category:"Makers", group:"Sakai Region", sort:2, title:"Takeshi Saji",   body:"Master smith known for exquisite Damascus patterns and premium materials.", image:"", link:"https://www.musashihamono.com/search?q=Takeshi+Saji", shape:"" },
+  { category:"Makers", group:"Sakai Region", sort:3, title:"Morihei / Hiden", body:"Traditional maker known for exceptional single-bevel knives and hand finishing.", image:"", link:"https://www.musashihamono.com/search?q=Morihei", shape:"" },
+  { category:"Makers", group:"Echizen & Other Regions", sort:4, title:"Yoshimi Kato", body:"Award-winning blacksmith. Exceptional grinds, SG2 and Damascus specialist.", image:"", link:"https://www.musashihamono.com/search?q=Yoshimi+Kato", shape:"" },
+  { category:"Makers", group:"Echizen & Other Regions", sort:5, title:"Yu Kurosaki",  body:"Modern master. Innovative surface patterns, exceptional balance and fit & finish.", image:"", link:"https://www.musashihamono.com/search?q=Yu+Kurosaki", shape:"" },
+  { category:"Makers", group:"Echizen & Other Regions", sort:6, title:"Tosa Tradition", body:"Kochi Prefecture. Utilitarian high-performance knives with excellent value.", image:"", link:"https://www.musashihamono.com/search?q=Tosa", shape:"" },
+
+  // ── Terminology ──
+  { category:"Terminology", group:"Construction Terms", sort:1, title:"Honbazuke", body:"Initial edge setting by the maker. Establishes the final cutting geometry.", image:"", link:"", shape:"" },
+  { category:"Terminology", group:"Construction Terms", sort:2, title:"Honyaki",   body:"Single steel construction. Highest grade, hamon visible. Requires expert maintenance.", image:"", link:"", shape:"" },
+  { category:"Terminology", group:"Construction Terms", sort:3, title:"Kasumi",    body:"Mirror edge bevel, misty body from forge work. Classic Japanese aesthetic.", image:"", link:"", shape:"" },
+  { category:"Terminology", group:"Construction Terms", sort:4, title:"Kurouchi",  body:"Forge scale left intact. Rustic look, protective, reduces food adhesion.", image:"", link:"", shape:"" },
+  { category:"Terminology", group:"Construction Terms", sort:5, title:"Tsuchime",  body:"Hand-hammered dimple texture. Decorative and reduces food sticking.", image:"", link:"", shape:"" },
+  { category:"Terminology", group:"Construction Terms", sort:6, title:"Nashiji",   body:"Pear-skin matte texture. Effective food release, refined appearance.", image:"", link:"", shape:"" },
+  { category:"Terminology", group:"Geometry & Parts", sort:7, title:"Ha",         body:"The cutting edge of the blade.", image:"", link:"", shape:"" },
+  { category:"Terminology", group:"Geometry & Parts", sort:8, title:"Mune",       body:"The spine (back) of the blade.", image:"", link:"", shape:"" },
+  { category:"Terminology", group:"Geometry & Parts", sort:9, title:"Shinogi",    body:"Transition line between the flat and the beveled edge section.", image:"", link:"", shape:"" },
+  { category:"Terminology", group:"Geometry & Parts", sort:10, title:"HRC",       body:"Rockwell Hardness Scale C. Higher = better retention but more brittle.", image:"", link:"", shape:"" },
+  { category:"Terminology", group:"Geometry & Parts", sort:11, title:"Single Bevel", body:"Edge ground on one side only. Traditional Japanese. Right or left-handed specific.", image:"", link:"", shape:"" },
+  { category:"Terminology", group:"Geometry & Parts", sort:12, title:"Double Bevel", body:"Edge ground symmetrically. Works for both left and right-handed users.", image:"", link:"", shape:"" },
+
+  // ── Usages ──
+  { category:"Usages", group:"By Task", sort:1, title:"Fish Butchery",   body:"Deba. Weight and single bevel handle heads, bones and scales.", image:"", link:"", shape:"" },
+  { category:"Usages", group:"By Task", sort:2, title:"Sashimi / Sushi", body:"Yanagiba. Long pull-cut creates clean, undamaged fish slices.", image:"", link:"", shape:"" },
+  { category:"Usages", group:"By Task", sort:3, title:"Vegetable Prep",  body:"Nakiri for everyday prep. Usuba for katsuramuki and precise julienne.", image:"", link:"", shape:"" },
+  { category:"Usages", group:"By Task", sort:4, title:"General Cooking", body:"Gyuto or Santoku as workhorse knives for most kitchen tasks.", image:"", link:"", shape:"" },
+  { category:"Usages", group:"By Task", sort:5, title:"Meat Slicing",    body:"Sujihiki. Long blade covers the full cut, minimising tearing.", image:"", link:"", shape:"" },
+  { category:"Usages", group:"By Task", sort:6, title:"Poultry Breakdown", body:"Honesuki. Stiff blade follows bone structure closely.", image:"", link:"", shape:"" },
+  { category:"Usages", group:"By Task", sort:7, title:"Detail / Garnish", body:"Petty. Fine precision work, peeling and garnishes.", image:"", link:"", shape:"" },
+
+  // ── Finish ──
+  { category:"Finish", group:"Finish Types", sort:1, title:"Kasumi",              body:"Mirror edge with misty body. The classic Japanese aesthetic.", image:"/Kasumi.png", link:"", shape:"" },
+  { category:"Finish", group:"Finish Types", sort:2, title:"Kurouchi (Blacksmith)", body:"Forge scale intact. Rustic, protective patina. Excellent food release.", image:"/Kurouchi.png", link:"", shape:"" },
+  { category:"Finish", group:"Finish Types", sort:3, title:"Migaki (Mirror)",     body:"Fully polished blade. Maximum visual impact. Shows scratches over time.", image:"/Migaki.png", link:"", shape:"" },
+  { category:"Finish", group:"Finish Types", sort:4, title:"Nashiji (Pear Skin)", body:"Textured matte. Very effective food release.", image:"/Nashiji.jpg", link:"", shape:"" },
+  { category:"Finish", group:"Finish Types", sort:5, title:"Tsuchime (Hammered)", body:"Hand-hammered dimples. Highly decorative with anti-stick properties.", image:"/Tsuchime.jpeg", link:"", shape:"" },
+  { category:"Finish", group:"Finish Types", sort:6, title:"Suminagashi (Damascus)", body:"Folded steel pattern. Each blade is unique.", image:"/Damascus.jpg", link:"", shape:"" },
+
+  // ── Woods ──
+  { category:"Woods", group:"Traditional Japanese", sort:1, title:"Ho (Magnolia)",    body:"Lightweight, absorbs moisture. Traditional Wa handle choice. Replaceable.", image:"/Magnolia.jpg", link:"", shape:"" },
+  { category:"Woods", group:"Traditional Japanese", sort:2, title:"Walnut (Kurumi)",  body:"Dense, beautiful grain. Natural oils provide water resistance.", image:"/Walnut.jpg", link:"", shape:"" },
+  { category:"Woods", group:"Traditional Japanese", sort:3, title:"Cherry (Sakura)",  body:"Hard, warm reddish tones. Good balance of grip and aesthetics.", image:"/Cherry.jpg", link:"", shape:"" },
+  { category:"Woods", group:"Traditional Japanese", sort:4, title:"Chestnut (Kuri)",  body:"Traditional choice. Warm brown tones, medium weight.", image:"/Chestnut.jpg", link:"", shape:"" },
+  { category:"Woods", group:"Traditional Japanese", sort:5, title:"Ebony",            body:"Very dense and dark. Premium traditional choice. Excellent water resistance.", image:"/Ebony.jpg", link:"", shape:"" },
+  { category:"Woods", group:"Modern & Premium",     sort:6, title:"Stabilized Wood",  body:"Resin-impregnated. Highly water resistant, vivid colors, very stable.", image:"", link:"", shape:"" },
+  { category:"Woods", group:"Modern & Premium",     sort:7, title:"Rosewood",         body:"Rich reddish-brown, high natural oil content. Dense and durable.", image:"/Rosewood.jpg", link:"", shape:"" },
+  { category:"Woods", group:"Modern & Premium",     sort:8, title:"Ambrosia Maple",   body:"Blue-grey streaks from beetle galleries. Highly decorative.", image:"/Maple.jpg", link:"", shape:"" },
+  { category:"Woods", group:"Modern & Premium",     sort:9, title:"Pakkawood",        body:"Resin-compressed layered wood. Stable, water resistant, various colors.", image:"", link:"", shape:"" },
+
+  // ── Packs ──
+  { category:"Packs", group:"By Number of Knives", sort:1, title:"1 Knife", body:"Santoku 165–180mm in VG-10 or Ginsan. The single all-rounder that handles meat, fish, and vegetables comfortably.", image:"", link:"", shape:"" },
+  { category:"Packs", group:"By Number of Knives", sort:2, title:"2 Knives", body:"Gyuto + Petty. The classic combo — one for everything, one for detail work and fruit.", image:"", link:"", shape:"" },
+  { category:"Packs", group:"By Number of Knives", sort:3, title:"3 Knives", body:"Gyuto + Petty + Nakiri. Covers protein, detail work, and vegetables.", image:"", link:"", shape:"" },
+  { category:"Packs", group:"By Number of Knives", sort:4, title:"4 Knives", body:"Gyuto + Petty + Nakiri + Sujihiki. Adds a slicer for larger cuts of meat and fish.", image:"", link:"", shape:"" },
+  { category:"Packs", group:"By Number of Knives", sort:5, title:"5 Knives", body:"Gyuto + Santoku + Nakiri + Petty + Deba. A well-rounded kitchen set covering daily tasks plus fish butchery.", image:"", link:"", shape:"" },
+  { category:"Packs", group:"By Number of Knives", sort:6, title:"6 Knives", body:"Gyuto + Santoku + Nakiri + Petty + Deba + Sujihiki. The complete professional set.", image:"", link:"", shape:"" },
+  { category:"Packs", group:"By Customer Type", sort:7, title:"Chef",       body:"Gyuto 240–270mm in premium steel (Blue Super, SG2). Performance over comfort, built for volume.", image:"", link:"", shape:"" },
+  { category:"Packs", group:"By Customer Type", sort:8, title:"Sushi Chef", body:"Yanagiba + Deba + Usuba. The traditional single-bevel set for itamae work.", image:"", link:"", shape:"" },
+  { category:"Packs", group:"By Customer Type", sort:9, title:"Gift",       body:"Santoku or Petty with a decorative handle (Damascus, premium wood) in a gift box.", image:"", link:"", shape:"" },
+  { category:"Packs", group:"By Customer Type", sort:10, title:"Fisher",    body:"Deba + a sturdy Petty for on-the-spot cleaning and filleting.", image:"", link:"", shape:"" },
+  { category:"Packs", group:"By Customer Type", sort:11, title:"Hunter",    body:"Thick-bladed knife in a tough steel (SLD, SKD) built for processing game.", image:"", link:"", shape:"" },
+
+  // ── General ──
+  { category:"General", group:"Care & Maintenance", sort:1, title:"Never dishwasher",   body:"Hand wash and dry immediately. Dishwashers destroy handles and edges.", image:"", link:"", shape:"" },
+  { category:"General", group:"Care & Maintenance", sort:2, title:"Cutting surfaces",   body:"Wood or plastic only. Glass and ceramic destroy any edge quickly.", image:"", link:"", shape:"" },
+  { category:"General", group:"Care & Maintenance", sort:3, title:"Carbon steel care",  body:"Dry immediately after use. Apply camellia oil for storage.", image:"", link:"", shape:"" },
+  { category:"General", group:"Care & Maintenance", sort:4, title:"Sharpening",         body:"Whetstones: 400–1000 grit for repair, 1000–3000 regular, 6000+ polishing.", image:"", link:"", shape:"" },
+  { category:"General", group:"Care & Maintenance", sort:5, title:"Storage",            body:"Magnetic strip, knife block, or blade guards. Never loose in drawers.", image:"", link:"", shape:"" },
+  { category:"General", group:"Customer Notes",     sort:6, title:"Tax-Free Shopping",  body:"Non-resident visitors receive 6% tax-free discount. Passport required at purchase.", image:"", link:"", shape:"" },
+  { category:"General", group:"Customer Notes",     sort:7, title:"Beginner",           body:"VG-10 or Ginsan. Stainless, forgiving, low maintenance. Gyuto or Santoku.", image:"", link:"", shape:"" },
+  { category:"General", group:"Customer Notes",     sort:8, title:"Intermediate",       body:"Blue #2. Better performance. Requires immediate drying after use.", image:"", link:"", shape:"" },
+  { category:"General", group:"Customer Notes",     sort:9, title:"Advanced",           body:"White #1, Honyaki, single-bevel. Maximum performance. Full care commitment.", image:"", link:"", shape:"" },
+];
+
+// ─── Generate CSVs ─────────────────────────────────────────────────────────────
+
+// steels.csv
+const steelHeaders = ["label","aliases","category","maker","hrc","retention","sharpening","corrosion","chip","c_pct","cr_pct","mo_pct","v_pct","w_pct","co_pct","mn_pct","si_pct","other_comp","description","available"];
+const steelRows = STEELS.map(s => row([
+  s.label, s.aliases, s.category, s.maker, s.hrc,
+  s.retention, s.sharpening, s.corrosion, s.chip,
+  s.c, s.cr, s.mo, s.v, s.w, s.co, s.mn, s.si, s.other,
+  s.description, s.available ? "true" : "false",
+]));
+writeFileSync(join(__dir, "steels.csv"), [row(steelHeaders), ...steelRows].join("\n"), "utf8");
+console.log(`✓ steels.csv — ${STEELS.length} records`);
+
+// knowledge_base.csv
+const kbHeaders = ["category","group","sort_order","title","body","image_url","link","shape_key","published"];
+const kbRows = KB.map(k => row([
+  k.category, k.group, k.sort, k.title, k.body, k.image, k.link, k.shape, "true",
+]));
+writeFileSync(join(__dir, "knowledge_base.csv"), [row(kbHeaders), ...kbRows].join("\n"), "utf8");
+console.log(`✓ knowledge_base.csv — ${KB.length} records`);
+
+console.log("\nNext: import both CSVs into Airtable, then copy the table IDs into Netlify env vars.");

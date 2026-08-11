@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import * as ZXingLib from "@zxing/library";
 
@@ -24,230 +24,36 @@ const G = `
   input{font-family:'Jost',system-ui,-apple-system,'Helvetica Neue',sans-serif}
 `;
 
-const STEELS = {
-  "white steel 3":  { label:"White Steel #3",  cat:"Carbon",       maker:"Hitachi", hrc:"59–62", retention:6,  sharpening:10, corrosion:1, chip:9,  comp:{ C:"0.80–0.90%", Mn:"0.10–0.20%", Si:"0.10–0.20%" }, desc:"Most accessible Shirogami. Low carbon gives exceptional ease of sharpening and a keen initial edge with lower edge retention than #1 or #2. Highly reactive — dry immediately after every use." },
-  "shirogami 3":    { label:"White Steel #3",  cat:"Carbon",       maker:"Hitachi", hrc:"59–62", retention:6,  sharpening:10, corrosion:1, chip:9,  comp:{ C:"0.80–0.90%", Mn:"0.10–0.20%", Si:"0.10–0.20%" }, desc:"See White Steel #3." },
-  "white steel 2":  { label:"White Steel #2",  cat:"Carbon",       maker:"Hitachi", hrc:"61–64", retention:7,  sharpening:9,  corrosion:1, chip:8,  comp:{ C:"1.00–1.10%", Mn:"0.20–0.30%", Si:"0.10–0.20%", P:"≤0.025%", S:"≤0.004%" }, desc:"Benchmark of Japanese kitchen knife carbon steels. High purity allows an extremely sharp edge. Very reactive — dry immediately after use." },
-  "shirogami 2":    { label:"White Steel #2",  cat:"Carbon",       maker:"Hitachi", hrc:"61–64", retention:7,  sharpening:9,  corrosion:1, chip:8,  comp:{ C:"1.00–1.10%", Mn:"0.20–0.30%", Si:"0.10–0.20%" }, desc:"See White Steel #2." },
-  "white steel 1":  { label:"White Steel #1",  cat:"Carbon",       maker:"Hitachi", hrc:"62–65", retention:8,  sharpening:8,  corrosion:1, chip:7,  comp:{ C:"1.25–1.35%", Mn:"0.20–0.30%", Si:"0.10–0.20%", P:"≤0.025%", S:"≤0.004%" }, desc:"Purest and highest-carbon Shirogami. Extremely refined edge — used in top Honyaki knives. More brittle than #2. Requires expert care." },
-  "shirogami 1":    { label:"White Steel #1",  cat:"Carbon",       maker:"Hitachi", hrc:"62–65", retention:8,  sharpening:8,  corrosion:1, chip:7,  comp:{ C:"1.25–1.35%", Mn:"0.20–0.30%", Si:"0.10–0.20%" }, desc:"See White Steel #1." },
-  "blue steel 2":   { label:"Blue Steel #2",   cat:"Carbon",       maker:"Hitachi", hrc:"62–63", retention:8,  sharpening:7,  corrosion:2, chip:8,  comp:{ C:"1.00–1.20%", Cr:"0.20–0.50%", W:"1.50–2.00%", Mn:"0.20–0.30%", Si:"0.10–0.20%" }, desc:"Most popular carbon steel in Japanese knife making. Tungsten and chromium improve toughness and retention while remaining accessible to sharpen." },
-  "aogami 2":       { label:"Blue Steel #2",   cat:"Carbon",       maker:"Hitachi", hrc:"62–63", retention:8,  sharpening:7,  corrosion:2, chip:8,  comp:{ C:"1.00–1.20%", Cr:"0.20–0.50%", W:"1.50–2.00%", Mn:"0.20–0.30%", Si:"0.10–0.20%" }, desc:"See Blue Steel #2." },
-  "blue steel 1":   { label:"Blue Steel #1",   cat:"Carbon",       maker:"Hitachi", hrc:"62–65", retention:9,  sharpening:6,  corrosion:2, chip:7,  comp:{ C:"1.20–1.40%", Cr:"0.30–0.50%", W:"1.50–2.00%", Mn:"0.20–0.30%", Si:"0.10–0.20%" }, desc:"Higher carbon than Blue #2. Superior edge retention. More demanding to sharpen — for experienced users." },
-  "aogami 1":       { label:"Blue Steel #1",   cat:"Carbon",       maker:"Hitachi", hrc:"62–65", retention:9,  sharpening:6,  corrosion:2, chip:7,  comp:{ C:"1.20–1.40%", Cr:"0.30–0.50%", W:"1.50–2.00%", Mn:"0.20–0.30%", Si:"0.10–0.20%" }, desc:"See Blue Steel #1." },
-  "blue super":     { label:"Blue Super",      cat:"Carbon",       maker:"Hitachi", hrc:"63–67", retention:10, sharpening:5,  corrosion:3, chip:8,  comp:{ C:"1.40–1.50%", Cr:"0.30–0.50%", W:"2.00–2.50%", Mo:"0.30–0.50%", V:"0.30–0.50%", Mn:"0.20–0.40%", Si:"0.10–0.40%" }, desc:"Pinnacle of Yasugi carbon steel. Mo and V push hardness and retention to the absolute limits without becoming brittle. Expert sharpening and care required." },
-  "aogami super":   { label:"Blue Super",      cat:"Carbon",       maker:"Hitachi", hrc:"63–67", retention:10, sharpening:5,  corrosion:3, chip:8,  comp:{ C:"1.40–1.50%", Cr:"0.30–0.50%", W:"2.00–2.50%", Mo:"0.30–0.50%", V:"0.30–0.50%", Mn:"0.20–0.40%", Si:"0.10–0.40%" }, desc:"See Blue Super." },
-  "v-toku 2":       { label:"V-Toku 2",        cat:"Carbon",       maker:"Hitachi", hrc:"62–65", retention:9,  sharpening:6,  corrosion:2, chip:7,  comp:{ C:"1.00–1.20%", V:"0.20–0.30%", Cr:"0.10–0.30%", Mn:"0.20–0.30%", Si:"0.10–0.20%" }, desc:"Hitachi carbon steel with vanadium additions. Vanadium carbides improve wear resistance beyond standard Blue steels." },
-  "sk steel":       { label:"SK Steel",        cat:"Carbon",       maker:"JIS",     hrc:"58–62", retention:5,  sharpening:9,  corrosion:1, chip:9,  comp:{ C:"0.95–1.10%", Mn:"0.10–0.50%", Si:"0.10–0.35%" }, desc:"JIS standard basic tool steel. Lower performance but very easy to sharpen. Entry-level traditional knives. Highly reactive." },
-  "apex ultra":     { label:"ApexUltra",       cat:"Carbon",       maker:"Takefu",  hrc:"64–67", retention:10, sharpening:3,  corrosion:3, chip:7,  comp:{ C:"1.55–1.65%", Cr:"0.50%", V:"0.50%", W:"2.00%", Mo:"0.50%", Mn:"0.30%" }, desc:"Ultra-high carbon steel. Extreme edge retention. Requires specialist heat treatment, expert sharpening and meticulous care." },
-  "sld":            { label:"SLD",             cat:"Semi-stainless", maker:"Hitachi", hrc:"60–63", retention:8,  sharpening:7,  corrosion:5, chip:8,  comp:{ C:"0.95–1.00%", Cr:"7.80–8.50%", Mo:"1.00–1.50%", V:"0.20–0.30%", Mn:"0.30–0.60%", Si:"0.20–0.50%" }, desc:"Semi-stainless tool steel. ~8% Cr develops a protective patina rather than rusting aggressively. Excellent toughness and good edge retention." },
-  "skd":            { label:"SKD",             cat:"Semi-stainless", maker:"JIS",     hrc:"62–64", retention:9,  sharpening:5,  corrosion:6, chip:7,  comp:{ C:"1.40–1.60%", Cr:"11.00–13.00%", Mo:"0.80–1.20%", V:"0.70–1.00%", Mn:"0.20–0.50%" }, desc:"High-carbon, high-chromium tool steel. ~12% Cr offers meaningful corrosion resistance. High carbide volume delivers excellent edge retention." },
-  "hap-40":         { label:"HAP-40",          cat:"Semi-stainless", maker:"Hitachi", hrc:"66–67", retention:10, sharpening:4,  corrosion:5, chip:8,  comp:{ C:"1.27%", Cr:"4.00%", Mo:"5.00%", W:"6.00%", V:"3.00%", Co:"8.00%", Mn:"0.30%", Si:"0.45%" }, desc:"High-speed powder tool steel. W, Mo, V and Co push hardness to 66–67 HRC. Outstanding edge retention. Requires diamond or CBN stones." },
-  "hap40":          { label:"HAP-40",          cat:"Semi-stainless", maker:"Hitachi", hrc:"66–67", retention:10, sharpening:4,  corrosion:5, chip:8,  comp:{ C:"1.27%", Cr:"4.00%", Mo:"5.00%", W:"6.00%", V:"3.00%", Co:"8.00%", Mn:"0.30%", Si:"0.45%" }, desc:"See HAP-40." },
-  "aus-8":          { label:"AUS-8",           cat:"Stainless",    maker:"Aichi",   hrc:"57–59", retention:5,  sharpening:8,  corrosion:7, chip:8,  comp:{ C:"0.70–0.75%", Cr:"13.00–14.50%", Mo:"0.10–0.30%", V:"0.10–0.26%", Ni:"0.49%", Mn:"0.50%", Si:"1.00%" }, desc:"Reliable mid-range Japanese stainless. Balanced performance, easy to sharpen, forgiving of rough use, good corrosion resistance." },
-  "aus8":           { label:"AUS-8",           cat:"Stainless",    maker:"Aichi",   hrc:"57–59", retention:5,  sharpening:8,  corrosion:7, chip:8,  comp:{ C:"0.70–0.75%", Cr:"13.00–14.50%", Mo:"0.10–0.30%", V:"0.10–0.26%", Ni:"0.49%", Mn:"0.50%", Si:"1.00%" }, desc:"See AUS-8." },
-  "mv (molybdenum vanadium)": { label:"MV (Molybdenum Vanadium)", cat:"Stainless", maker:"Various", hrc:"56–58", retention:4, sharpening:9, corrosion:8, chip:9, comp:{ C:"0.60–0.70%", Cr:"13.00–14.00%", Mo:"0.50–1.00%", V:"0.10–0.20%" }, desc:"Basic stainless designation. Lower carbon limits edge retention but delivers excellent toughness and corrosion resistance. Very easy to sharpen." },
-  "swedish steel":  { label:"Swedish Steel",   cat:"Stainless",    maker:"Sandvik", hrc:"60–62", retention:6,  sharpening:8,  corrosion:7, chip:8,  comp:{ C:"0.65–0.70%", Cr:"13.50%", Mo:"0.10%", Mn:"0.65%", Si:"0.40%" }, desc:"High-purity Scandinavian stainless (19C27). Fine microstructure allows sharpness comparable to carbon steels. Consistent quality." },
-  "sweden":         { label:"Swedish Steel",   cat:"Stainless",    maker:"Sandvik", hrc:"60–62", retention:6,  sharpening:8,  corrosion:7, chip:8,  comp:{ C:"0.65–0.70%", Cr:"13.50%", Mo:"0.10%", Mn:"0.65%", Si:"0.40%" }, desc:"See Swedish Steel." },
-  "vg1":            { label:"VG-1",            cat:"Stainless",    maker:"Takefu",  hrc:"57–60", retention:5,  sharpening:8,  corrosion:8, chip:8,  comp:{ C:"0.60–0.75%", Cr:"14.00–15.00%", Mo:"0.10%", Mn:"0.50%", Si:"0.40%" }, desc:"Entry-level VG series by Takefu. Good corrosion resistance and easy to sharpen. Low-maintenance for everyday use." },
-  "vg5":            { label:"VG-5",            cat:"Stainless",    maker:"Takefu",  hrc:"59–61", retention:6,  sharpening:7,  corrosion:8, chip:7,  comp:{ C:"0.80–0.90%", Cr:"14.00–15.00%", V:"0.10–0.20%", Mo:"0.20%", Mn:"0.50%", Si:"0.50%" }, desc:"Mid-range VG series between VG-1 and VG-10. Good corrosion resistance. Easier to sharpen than VG-10." },
-  "ginsan":         { label:"Ginsan / Silver #3", cat:"Stainless", maker:"Hitachi", hrc:"61–62", retention:7,  sharpening:8,  corrosion:8, chip:7,  comp:{ C:"0.95–1.10%", Cr:"13.00–14.50%", Mn:"0.50–0.70%", Si:"0.20–0.50%", P:"≤0.025%", S:"≤0.004%" }, desc:"Carbon steel performance with stainless convenience. Achieves sharpness close to White #2. Easier to sharpen than VG-10. Preferred by many professional chefs." },
-  "silver #3":      { label:"Ginsan / Silver #3", cat:"Stainless", maker:"Hitachi", hrc:"61–62", retention:7,  sharpening:8,  corrosion:8, chip:7,  comp:{ C:"0.95–1.10%", Cr:"13.00–14.50%", Mn:"0.50–0.70%", Si:"0.20–0.50%" }, desc:"See Ginsan / Silver #3." },
-  "gin san":        { label:"Ginsan / Silver #3", cat:"Stainless", maker:"Hitachi", hrc:"61–62", retention:7,  sharpening:8,  corrosion:8, chip:7,  comp:{ C:"0.95–1.10%", Cr:"13.00–14.50%", Mn:"0.50–0.70%", Si:"0.20–0.50%" }, desc:"See Ginsan / Silver #3." },
-  "gingami #3":     { label:"Ginsan / Silver #3", cat:"Stainless", maker:"Hitachi", hrc:"61–62", retention:7,  sharpening:8,  corrosion:8, chip:7,  comp:{ C:"0.95–1.10%", Cr:"13.00–14.50%", Mn:"0.50–0.70%", Si:"0.20–0.50%" }, desc:"See Ginsan / Silver #3." },
-  "chromax":        { label:"Chromax",         cat:"Stainless",    maker:"Hitachi", hrc:"61–63", retention:6,  sharpening:8,  corrosion:8, chip:8,  comp:{ C:"0.70–0.75%", Cr:"13.50%", Mo:"0.10%", Mn:"0.50%", Si:"0.40%" }, desc:"Hitachi stainless emphasising corrosion resistance and ease of sharpening. Good for humid environments." },
-  "ats34":          { label:"ATS-34",          cat:"Stainless",    maker:"Hitachi", hrc:"60–62", retention:7,  sharpening:6,  corrosion:7, chip:7,  comp:{ C:"1.05%", Cr:"14.00%", Mo:"4.00%", Mn:"0.40%", Si:"0.35%" }, desc:"Premium conventional stainless equivalent to 154CM. Gold standard before PM steels. High Mo improves toughness and corrosion resistance." },
-  "vg-10":          { label:"VG-10",           cat:"Stainless",    maker:"Takefu",  hrc:"60–62", retention:7,  sharpening:6,  corrosion:8, chip:7,  comp:{ C:"1.00%", Cr:"14.50–15.50%", Mo:"0.90–1.20%", V:"0.10–0.30%", Co:"1.30–1.50%", Mn:"0.50%", Si:"0.40%" }, desc:"Most widely-used premium Japanese stainless. Cobalt gives better edge retention than composition alone suggests. The benchmark for accessible high-performance stainless." },
-  "vg10":           { label:"VG-10",           cat:"Stainless",    maker:"Takefu",  hrc:"60–62", retention:7,  sharpening:6,  corrosion:8, chip:7,  comp:{ C:"1.00%", Cr:"14.50–15.50%", Mo:"0.90–1.20%", V:"0.10–0.30%", Co:"1.30–1.50%", Mn:"0.50%", Si:"0.40%" }, desc:"See VG-10." },
-  "vg-max":         { label:"VG-MAX",          cat:"Stainless",    maker:"Takefu",  hrc:"60–62", retention:8,  sharpening:6,  corrosion:8, chip:7,  comp:{ C:"1.00%", Cr:"14.50–15.50%", Mo:"0.90–1.20%", V:"0.30%", Co:"2.50%", Mn:"0.50%", Si:"0.50%" }, desc:"Upgraded proprietary VG-10 for Shun. Higher Co and V improve edge retention." },
-  "aus-10":         { label:"AUS-10",          cat:"Stainless",    maker:"Aichi",   hrc:"60–62", retention:7,  sharpening:6,  corrosion:8, chip:8,  comp:{ C:"0.95–1.10%", Cr:"13.00–14.50%", Mo:"0.10–0.30%", V:"0.10–0.27%", Mn:"0.50%", Si:"1.00%", Ni:"0.49%" }, desc:"Premium AUS series. Higher C and V than AUS-8 improve edge retention. Nickel adds toughness." },
-  "aus10":          { label:"AUS-10",          cat:"Stainless",    maker:"Aichi",   hrc:"60–62", retention:7,  sharpening:6,  corrosion:8, chip:8,  comp:{ C:"0.95–1.10%", Cr:"13.00–14.50%", Mo:"0.10–0.30%", V:"0.10–0.27%", Mn:"0.50%", Si:"1.00%", Ni:"0.49%" }, desc:"See AUS-10." },
-  "cosp (cobalt special)": { label:"COSP (Cobalt Special)", cat:"Stainless", maker:"Takefu", hrc:"62–64", retention:8, sharpening:6, corrosion:7, chip:8, comp:{ C:"0.80–0.90%", Cr:"13.00–14.00%", Co:"3.00–5.00%", Mo:"0.50%", V:"0.20%", Mn:"0.50%" }, desc:"Cobalt-enhanced stainless. High Co allows greater hardness improving edge retention beyond what carbon content suggests." },
-  "za-18":          { label:"ZA-18",           cat:"Stainless",    maker:"Takefu",  hrc:"63–65", retention:8,  sharpening:5,  corrosion:9, chip:7,  comp:{ C:"1.00%", Cr:"18.00%", Mo:"1.30%", V:"0.20%", Co:"1.50%", Mn:"0.40%", Si:"0.40%" }, desc:"18% Cr gives near-immune rust resistance. Ideal for humid professional environments. Cobalt improves hardness." },
-  "sg2":            { label:"SG2 / R2",        cat:"Stainless PM", maker:"Takefu",  hrc:"62–64", retention:9,  sharpening:5,  corrosion:8, chip:8,  comp:{ C:"1.25%", Cr:"14.00%", V:"1.80%", Mo:"2.30%", Co:"1.50%", Mn:"0.40%", Si:"0.50%", P:"≤0.030%", S:"≤0.030%" }, desc:"Benchmark powder metallurgy stainless steel. Uniform carbide distribution delivers exceptional edge retention. The endgame steel for most professionals." },
-  "r2":             { label:"SG2 / R2",        cat:"Stainless PM", maker:"Kobelco", hrc:"62–64", retention:9,  sharpening:5,  corrosion:8, chip:8,  comp:{ C:"1.25%", Cr:"14.00%", V:"1.80%", Mo:"2.30%", Co:"1.50%", Mn:"0.40%", Si:"0.50%" }, desc:"See SG2 / R2." },
-  "vg xeos":        { label:"VG XEOS",         cat:"Stainless PM", maker:"Takefu",  hrc:"63–65", retention:9,  sharpening:5,  corrosion:8, chip:7,  comp:{ C:"1.20–1.40%", Cr:"14.00–15.00%", V:"1.50–2.00%", Mo:"2.00–2.50%", Co:"1.00%", Mn:"0.40%" }, desc:"Advanced PM stainless bridging VG-10 and SG2. High V and Mo push edge retention well beyond VG-10." },
-  "srs-13":         { label:"SRS-13",          cat:"Stainless PM", maker:"Nachi",   hrc:"63–65", retention:9,  sharpening:4,  corrosion:8, chip:8,  comp:{ C:"1.30%", Cr:"13.50%", Mo:"2.00%", V:"3.00%", Co:"1.00%", Mn:"0.50%", Si:"0.30%" }, desc:"PM stainless by Nachi-Fujikoshi. High V (3%) produces fine vanadium carbides for exceptional retention." },
-  "faxr2":          { label:"FAXR2",           cat:"Stainless PM", maker:"Takefu",  hrc:"63–64", retention:9,  sharpening:4,  corrosion:8, chip:8,  comp:{ C:"1.30%", Cr:"14.00%", Mo:"2.50%", V:"2.00%", Co:"1.50%", Mn:"0.40%", Si:"0.40%" }, desc:"PM stainless close to SG2. High V and Mo for excellent wear resistance." },
-  "spg strix":      { label:"SPG STRIX",       cat:"Stainless PM", maker:"Takefu",  hrc:"63–64", retention:9,  sharpening:4,  corrosion:8, chip:8,  comp:{ C:"1.40%", Cr:"14.00%", Mo:"2.00%", V:"2.40%", Co:"1.00%", Mn:"0.40%", Si:"0.40%" }, desc:"Premium PM stainless at or above SG2. Very high V carbide content for exceptional edge retention." },
-  "zdp-189":        { label:"ZDP-189",         cat:"Stainless PM", maker:"Hitachi", hrc:"67–69", retention:10, sharpening:2,  corrosion:7, chip:5,  comp:{ C:"3.00%", Cr:"20.00%", Mo:"1.40%", Mn:"0.50%", Si:"0.40%" }, desc:"The extreme end of knife steel. 3% C and 20% Cr push hardness to 67–69 HRC. Very brittle — expert-only." },
-  "zdp189":         { label:"ZDP-189",         cat:"Stainless PM", maker:"Hitachi", hrc:"67–69", retention:10, sharpening:2,  corrosion:7, chip:5,  comp:{ C:"3.00%", Cr:"20.00%", Mo:"1.40%", Mn:"0.50%", Si:"0.40%" }, desc:"See ZDP-189." },
-};
-
-const EXTRA_ALIASES = {
-  "sg-2":"sg2","sg 2":"sg2","vg-1":"vg1","vg 1":"vg1","vg-5":"vg5","vg 5":"vg5",
-  "vg 10":"vg-10","blue 2":"blue steel 2","blue 1":"blue steel 1",
-  "white 2":"white steel 2","white 1":"white steel 1","white 3":"white steel 3",
-  "silver steel #3":"ginsan","silver steel 3":"ginsan","silver 3":"ginsan","gin-san":"ginsan",
-  "aogami2":"aogami 2","aogami1":"aogami 1","shirogami2":"shirogami 2","shirogami1":"shirogami 1",
-  "zdp 189":"zdp-189","hap 40":"hap-40","aus 10":"aus-10","aus 8":"aus-8",
-};
-Object.entries(EXTRA_ALIASES).forEach(([k,v]) => {
-  if (typeof v === "string") STEELS[k] = STEELS[v];
-  else STEELS[k] = v;
-});
+// ── Steel data loaded from Airtable via /.netlify/functions/airtable-proxy?resource=steels ──
 
 // Light theme cat colors
 const CAT_TEXT = { "Carbon":"#8a6820", "Semi-stainless":"#2a7a40", "Stainless":"#2060a0", "Stainless PM":"#6040a0" };
 const CAT_BG   = { "Carbon":"#fdf5e4", "Semi-stainless":"#e8f5ee", "Stainless":"#e4eef8", "Stainless PM":"#ede8f8" };
 
-const INFO = {
-  Metal:{heading:"Steel Types",groups:[
-    {name:"Carbon Steels — softest to hardest",items:[
-      {n:"SK Steel — HRC 58–62",               d:"C 0.95–1.10%. JIS standard basic tool steel. Entry-level, very easy to sharpen. Highly reactive."},
-      {n:"White Steel #3 (Shirogami 3) — HRC 59–62", d:"C 0.80–0.90%. Most forgiving Shirogami. Easiest to sharpen, lower retention. Very reactive."},
-      {n:"White Steel #2 (Shirogami 2) — HRC 61–64", d:"C 1.00–1.10%. Benchmark carbon steel. Extremely sharp, easy to sharpen. Very reactive."},
-      {n:"Blue Steel #2 (Aogami 2) — HRC 62–63", d:"C 1.0–1.2%, W 1.5–2.0%, Cr 0.2–0.5%. Most popular carbon knife steel. Excellent chip resistance."},
-      {n:"White Steel #1 (Shirogami 1) — HRC 62–65", d:"C 1.25–1.35%. Purest Shirogami. Top Honyaki knives. More brittle than #2."},
-      {n:"Blue Steel #1 (Aogami 1) — HRC 62–65", d:"C 1.2–1.4%, W 1.5–2.0%. Superior retention. For experienced users."},
-      {n:"V-Toku 2 — HRC 62–65",              d:"C 1.0–1.2%, V 0.2–0.3%. Vanadium carbides improve wear resistance. Fine grain."},
-      {n:"Blue Super (Aogami Super) — HRC 63–67", d:"C 1.4–1.5%, W 2.0–2.5%, Mo, V. Pinnacle of Yasugi steel. Expert care required."},
-      {n:"ApexUltra (Takefu) — HRC 64–67",    d:"C 1.55–1.65%, W, V, Mo. Extreme edge retention. Expert-only steel."},
-    ]},
-    {name:"Semi-Stainless — softest to hardest",items:[
-      {n:"SLD (Hitachi) — HRC 60–63",         d:"C 0.95–1.0%, Cr 7.8–8.5%, Mo 1.5%. Patinas rather than rusts. Excellent toughness."},
-      {n:"SKD (JIS SKD11) — HRC 62–64",       d:"C 1.4–1.6%, Cr 11–13%. High carbide volume for excellent retention."},
-      {n:"HAP-40 (Hitachi PM) — HRC 66–67",   d:"C 1.27%, Cr 4%, W 6%, Mo 5%, V 3%, Co 8%. Extreme hardness. Requires diamond stones."},
-    ]},
-    {name:"Stainless — softest to hardest",items:[
-      {n:"MV (Molybdenum Vanadium) — HRC 56–58", d:"C 0.60–0.70%, Cr 13–14%. Entry-level. Low retention, excellent toughness."},
-      {n:"AUS-8 (Aichi) — HRC 57–59",         d:"C 0.70–0.75%, Cr 13–14.5%. Balanced, forgiving. Easy to sharpen."},
-      {n:"VG-1 (Takefu) — HRC 57–60",         d:"C 0.60–0.75%, Cr 14–15%. Entry VG series. Low maintenance."},
-      {n:"VG-5 (Takefu) — HRC 59–61",         d:"C 0.80–0.90%, Cr 14–15%. Mid-range VG. Solid everyday performer."},
-      {n:"ATS-34 (Hitachi) — HRC 60–62",      d:"C 1.05%, Cr 14%, Mo 4%. Gold standard before PM steels."},
-      {n:"Swedish Steel (Sandvik) — HRC 60–62", d:"C 0.65–0.70%, Cr 13.5%. High-purity. Sharpness comparable to carbon steels."},
-      {n:"VG-10 (Takefu) — HRC 60–62",        d:"C 1.0%, Cr 14.5–15.5%, Mo 1%, Co 1.5%. Industry benchmark premium stainless."},
-      {n:"VG-MAX (Takefu) — HRC 60–62",       d:"C 1.0%, Cr 15%, V 0.3%, Co 2.5%. Upgraded VG-10. Higher retention."},
-      {n:"AUS-10 (Aichi) — HRC 60–62",        d:"C 0.95–1.10%, Cr 13–14.5%, Ni. Higher retention than AUS-8."},
-      {n:"Ginsan / Silver #3 (Hitachi) — HRC 61–62", d:"C 0.95–1.10%, Cr 13–14.5%. Carbon steel performance, stainless maintenance."},
-      {n:"Chromax (Hitachi) — HRC 61–63",     d:"C 0.70–0.75%, Cr 13.5%. Emphasis on corrosion resistance. Easy sharpening."},
-      {n:"COSP / Cobalt Special — HRC 62–64", d:"C 0.80–0.90%, Cr 13–14%, Co 3–5%. High cobalt allows greater hardness."},
-      {n:"ZA-18 (Takefu) — HRC 63–65",        d:"C 1.0%, Cr 18%, Co. Near-immune to rust. Ideal for humid kitchens."},
-    ]},
-    {name:"Powder Metallurgy (PM) — softest to hardest",items:[
-      {n:"SG2 / R2 (Takefu / Kobelco) — HRC 62–64", d:"C 1.25%, Cr 14%, V 1.8%, Mo 2.3%. Benchmark PM stainless. Endgame for most professionals."},
-      {n:"FAXR2 (Takefu) — HRC 63–64",        d:"C 1.3%, Cr 14%, Mo 2.5%, V 2.0%. Close to SG2. Excellent wear resistance."},
-      {n:"SPG STRIX (Takefu) — HRC 63–64",    d:"C 1.4%, Cr 14%, V 2.4%, Mo 2.0%. At or above SG2 in performance."},
-      {n:"VG XEOS (Takefu) — HRC 63–65",      d:"C 1.2–1.4%, V 1.5–2.0%, Mo 2.0–2.5%. Bridges VG-10 and SG2."},
-      {n:"SRS-13 (Nachi-Fujikoshi) — HRC 63–65", d:"C 1.3%, Cr 13.5%, V 3%. High vanadium for outstanding retention."},
-      {n:"ZDP-189 (Hitachi) — HRC 67–69",     d:"C 3.0%, Cr 20%. Extreme hardness. Very brittle. Expert-only."},
-    ]},
-  ]},
-  Shape:{heading:"Blade Shapes",groups:[
-    {name:"Double Bevel",items:[
-      {n:"Gyuto",d:"Japanese chef's knife. Versatile all-purpose blade. 180–270mm.",shape:"gyuto"},
-      {n:"Santoku",d:"Three virtues: meat, fish, vegetables. Shorter, lighter than gyuto. 165–190mm.",shape:"santoku"},
-      {n:"Nakiri",d:"Vegetable knife. Straight edge for push-cutting. 150–180mm.",shape:"nakiri"},
-      {n:"Sujihiki",d:"Slicing knife. Long, thin blade minimises tearing. 240–330mm.",shape:"sujihiki"},
-      {n:"Bunka",d:"Reverse tanto tip. Great for precision cuts. 165–200mm.",shape:"bunka"},
-      {n:"Honesuki",d:"Boning knife. Stiff triangular blade for poultry. 145–165mm.",shape:"honesuki"},
-      {n:"Petty",d:"Small utility knife for detail work and peeling. 120–180mm.",shape:"petty"},
-    ]},
-    {name:"Single Bevel (Traditional)",items:[
-      {n:"Deba",d:"Heavy fish butchery knife. Handles heads, bones and scales. 150–210mm.",shape:"deba"},
-      {n:"Yanagiba",d:"Sashimi slicer. Long pull-cut for clean fish slices. 240–360mm.",shape:"yanagiba"},
-      {n:"Usuba",d:"Vegetable knife for katsuramuki thin sheets. 180–240mm.",shape:"usuba"},
-      {n:"Kiritsuke",d:"Multi-purpose single-bevel. Extremely difficult to master. Status symbol.",shape:"kiritsuke"},
-    ]},
-  ]},
-  Makers:{heading:"Notable Makers",groups:[
-    {name:"Sakai Region",items:[
-      {n:"Sakai Takayuki",d:"One of the largest Sakai producers. Wide range from entry-level to professional grade.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Sakai+T.",link:"https://www.musashihamono.com/search?q=Sakai+Takayuki"},
-      {n:"Takeshi Saji",d:"Master smith known for exquisite Damascus patterns and premium materials.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Saji",link:"https://www.musashihamono.com/search?q=Takeshi+Saji"},
-      {n:"Morihei / Hiden",d:"Traditional maker known for exceptional single-bevel knives and hand finishing.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Morihei",link:"https://www.musashihamono.com/search?q=Morihei"},
-    ]},
-    {name:"Echizen & Other Regions",items:[
-      {n:"Yoshimi Kato",d:"Award-winning blacksmith. Exceptional grinds, SG2 and Damascus specialist.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Kato",link:"https://www.musashihamono.com/search?q=Yoshimi+Kato"},
-      {n:"Yu Kurosaki",d:"Modern master. Innovative surface patterns, exceptional balance and fit & finish.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Kurosaki",link:"https://www.musashihamono.com/search?q=Yu+Kurosaki"},
-      {n:"Tosa Tradition",d:"Kochi Prefecture. Utilitarian high-performance knives with excellent value.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Tosa",link:"https://www.musashihamono.com/search?q=Tosa"},
-    ]},
-  ]},
-  Terminology:{heading:"Key Terminology",groups:[
-    {name:"Construction Terms",items:[
-      {n:"Honbazuke",d:"Initial edge setting by the maker. Establishes the final cutting geometry."},
-      {n:"Honyaki",d:"Single steel construction. Highest grade, hamon visible. Requires expert maintenance."},
-      {n:"Kasumi",d:"Mirror edge bevel, misty body from forge work. Classic Japanese aesthetic."},
-      {n:"Kurouchi",d:"Forge scale left intact. Rustic look, protective, reduces food adhesion."},
-      {n:"Tsuchime",d:"Hand-hammered dimple texture. Decorative and reduces food sticking."},
-      {n:"Nashiji",d:"Pear-skin matte texture. Effective food release, refined appearance."},
-    ]},
-    {name:"Geometry & Parts",items:[
-      {n:"Ha",d:"The cutting edge of the blade."},
-      {n:"Mune",d:"The spine (back) of the blade."},
-      {n:"Shinogi",d:"Transition line between the flat and the beveled edge section."},
-      {n:"HRC",d:"Rockwell Hardness Scale C. Higher = better retention but more brittle."},
-      {n:"Single Bevel",d:"Edge ground on one side only. Traditional Japanese. Right or left-handed specific."},
-      {n:"Double Bevel",d:"Edge ground symmetrically. Works for both left and right-handed users."},
-    ]},
-  ]},
-  Usages:{heading:"Knife Usages",groups:[
-    {name:"By Task",items:[
-      {n:"Fish Butchery",d:"Deba. Weight and single bevel handle heads, bones and scales."},
-      {n:"Sashimi / Sushi",d:"Yanagiba. Long pull-cut creates clean, undamaged fish slices."},
-      {n:"Vegetable Prep",d:"Nakiri for everyday prep. Usuba for katsuramuki and precise julienne."},
-      {n:"General Cooking",d:"Gyuto or Santoku as workhorse knives for most kitchen tasks."},
-      {n:"Meat Slicing",d:"Sujihiki. Long blade covers the full cut, minimising tearing."},
-      {n:"Poultry Breakdown",d:"Honesuki. Stiff blade follows bone structure closely."},
-      {n:"Detail / Garnish",d:"Petty. Fine precision work, peeling and garnishes."},
-    ]},
-  ]},
-  Finish:{heading:"Surface Finishes",groups:[
-    {name:"Finish Types",items:[
-      {n:"Kasumi",d:"Mirror edge with misty body. The classic Japanese aesthetic.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Kasumi"},
-      {n:"Kurouchi (Blacksmith)",d:"Forge scale intact. Rustic, protective patina. Excellent food release.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Kurouchi"},
-      {n:"Migaki (Mirror)",d:"Fully polished blade. Maximum visual impact. Shows scratches over time.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Migaki"},
-      {n:"Nashiji (Pear Skin)",d:"Textured matte. Very effective food release.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Nashiji"},
-      {n:"Tsuchime (Hammered)",d:"Hand-hammered dimples. Highly decorative with anti-stick properties.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Tsuchime"},
-      {n:"Suminagashi (Damascus)",d:"Folded steel pattern. Each blade is unique.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Damascus"},
-    ]},
-  ]},
-  Woods:{heading:"Handle Woods",groups:[
-    {name:"Traditional Japanese",items:[
-      {n:"Ho (Magnolia)",d:"Lightweight, absorbs moisture. Traditional Wa handle choice. Replaceable.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Ho"},
-      {n:"Walnut (Kurumi)",d:"Dense, beautiful grain. Natural oils provide water resistance.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Walnut"},
-      {n:"Cherry (Sakura)",d:"Hard, warm reddish tones. Good balance of grip and aesthetics.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Sakura"},
-      {n:"Chestnut (Kuri)",d:"Traditional choice. Warm brown tones, medium weight.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Kuri"},
-      {n:"Ebony",d:"Very dense and dark. Premium traditional choice. Excellent water resistance.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Ebony"},
-    ]},
-    {name:"Modern & Premium",items:[
-      {n:"Stabilized Wood",d:"Resin-impregnated. Highly water resistant, vivid colors, very stable.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Stabilized"},
-      {n:"Rosewood",d:"Rich reddish-brown, high natural oil content. Dense and durable.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Rosewood"},
-      {n:"Ambrosia Maple",d:"Blue-grey streaks from beetle galleries. Highly decorative.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Maple"},
-      {n:"Pakkawood",d:"Resin-compressed layered wood. Stable, water resistant, various colors.",img:"https://placehold.co/100x80/e8e8e3/9a9a94?text=Pakkawood"},
-    ]},
-  ]},
-  Packs:{heading:"Recommended Packs",groups:[
-    {name:"By Number of Knives",items:[
-      {n:"1 Knife",d:"Santoku 165–180mm in VG-10 or Ginsan. The single all-rounder that handles meat, fish, and vegetables comfortably."},
-      {n:"2 Knives",d:"Gyuto + Petty. The classic combo — one for everything, one for detail work and fruit."},
-      {n:"3 Knives",d:"Gyuto + Petty + Nakiri. Covers protein, detail work, and vegetables."},
-      {n:"4 Knives",d:"Gyuto + Petty + Nakiri + Sujihiki. Adds a slicer for larger cuts of meat and fish."},
-      {n:"5 Knives",d:"Gyuto + Santoku + Nakiri + Petty + Deba. A well-rounded kitchen set covering daily tasks plus fish butchery."},
-      {n:"6 Knives",d:"Gyuto + Santoku + Nakiri + Petty + Deba + Sujihiki. The complete professional set."},
-    ]},
-    {name:"By Customer Type",items:[
-      {n:"Chef",d:"Gyuto 240–270mm in premium steel (Blue Super, SG2). Performance over comfort, built for volume."},
-      {n:"Sushi Chef",d:"Yanagiba + Deba + Usuba. The traditional single-bevel set for itamae work."},
-      {n:"Gift",d:"Santoku or Petty with a decorative handle (Damascus, premium wood) in a gift box."},
-      {n:"Fisher",d:"Deba + a sturdy Petty for on-the-spot cleaning and filleting."},
-      {n:"Hunter",d:"Thick-bladed knife in a tough steel (SLD, SKD) built for processing game."},
-    ]},
-  ]},
-  General:{heading:"General Knowledge",groups:[
-    {name:"Care & Maintenance",items:[
-      {n:"Never dishwasher",d:"Hand wash and dry immediately. Dishwashers destroy handles and edges."},
-      {n:"Cutting surfaces",d:"Wood or plastic only. Glass and ceramic destroy any edge quickly."},
-      {n:"Carbon steel care",d:"Dry immediately after use. Apply camellia oil for storage."},
-      {n:"Sharpening",d:"Whetstones: 400–1000 grit for repair, 1000–3000 regular, 6000+ polishing."},
-      {n:"Storage",d:"Magnetic strip, knife block, or blade guards. Never loose in drawers."},
-    ]},
-    {name:"Customer Notes",items:[
-      {n:"Tax-Free Shopping",d:"Non-resident visitors receive 6% tax-free discount. Passport required at purchase."},
-      {n:"Beginner",d:"VG-10 or Ginsan. Stainless, forgiving, low maintenance. Gyuto or Santoku."},
-      {n:"Intermediate",d:"Blue #2. Better performance. Requires immediate drying after use."},
-      {n:"Advanced",d:"White #1, Honyaki, single-bevel. Maximum performance. Full care commitment."},
-    ]},
-  ]},
+// ── Knowledge base loaded from Airtable via /.netlify/functions/airtable-proxy?resource=kb ──
+
+// Human-readable headings per category key (same as original)
+const KB_HEADINGS = {
+  Metal:"Steel Types", Shape:"Blade Shapes", Makers:"Notable Makers",
+  Terminology:"Key Terminology", Usages:"Knife Usages", Finish:"Surface Finishes",
+  Woods:"Handle Woods", Packs:"Recommended Packs", General:"General Knowledge",
+};
+
+// Build an INFO-style map from the flat kbData array returned by the proxy
+const buildInfoMap = (kbData) => {
+  const map = {};
+  for (const item of kbData) {
+    if (!map[item.category]) {
+      map[item.category] = { heading: KB_HEADINGS[item.category] || item.category, groups: [] };
+    }
+    let group = map[item.category].groups.find(g => g.name === item.group);
+    if (!group) {
+      group = { name: item.group, items: [] };
+      map[item.category].groups.push(group);
+    }
+    group.items.push({ n: item.title, d: item.body, img: item.image || "", link: item.link || "", shape: item.shape || "" });
+  }
+  return map;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -263,24 +69,17 @@ const extractHandle = (v) => {
 };
 
 const norm = (s) => s.toLowerCase().replace(/#/g,"").replace(/\s+/g," ").trim();
-const STEEL_PAIRS = Object.entries(STEELS)
-  .map(([k,v]) => [norm(k), v])
-  .sort((a,b) => b[0].length - a[0].length);
 
-const resolveSteel = (s) => {
-  if (!s || !s.desc?.startsWith("See ")) return s;
-  const ref = s.desc.replace("See ","").replace(".","").trim();
-  return Object.values(STEELS).find(x => x.label === ref && !x.desc?.startsWith("See ")) || s;
-};
-
-const detectSteel = (tags=[], title="", body="") => {
+// steelPairs is passed in from App (useMemo over steelsData) so steel detection
+// always uses the latest data without any module-level globals.
+const detectSteel = (tags=[], title="", body="", steelPairs=[]) => {
   const srcMain = norm([...tags, title].join(" "));
-  for (const [key,val] of STEEL_PAIRS) {
-    if (srcMain.includes(key)) return resolveSteel(val);
+  for (const [key,val] of steelPairs) {
+    if (srcMain.includes(key)) return val;
   }
   const srcBody = norm(body);
-  for (const [key,val] of STEEL_PAIRS) {
-    if (key.length >= 4 && srcBody.includes(key)) return resolveSteel(val);
+  for (const [key,val] of steelPairs) {
+    if (key.length >= 4 && srcBody.includes(key)) return val;
   }
   return null;
 };
@@ -347,63 +146,7 @@ const postNote = async ({ product, handle, issueType, comment, reporter }) => {
   return res.json();
 };
 
-// ─── Google Sheets backend ──────────────────────────────────────────────────
-// No API key needed. In Google Sheets: File → Share → Publish to web →
-// select each tab individually → format "Comma-separated values (.csv)" →
-// Publish, then paste the resulting URL below for each tab.
-// Leave blank to skip — the app works normally with hardcoded data until filled in.
-const SHEET_CSV = {
-  steels: "https://docs.google.com/spreadsheets/d/e/2PACX-1vS99j5DMR2ISvrqRvRRdgXH8EJslA-mUSHlck6x6D6RTMmnl_Kk1tf9BXBvjQ0DeK10UIzhpP5RIMJU/pub?gid=91564173&single=true&output=csv",
-  woods:  "https://docs.google.com/spreadsheets/d/e/2PACX-1vS99j5DMR2ISvrqRvRRdgXH8EJslA-mUSHlck6x6D6RTMmnl_Kk1tf9BXBvjQ0DeK10UIzhpP5RIMJU/pub?gid=315244972&single=true&output=csv",
-  makers: "https://docs.google.com/spreadsheets/d/e/2PACX-1vS99j5DMR2ISvrqRvRRdgXH8EJslA-mUSHlck6x6D6RTMmnl_Kk1tf9BXBvjQ0DeK10UIzhpP5RIMJU/pub?gid=519397208&single=true&output=csv",
-  finish: "https://docs.google.com/spreadsheets/d/e/2PACX-1vS99j5DMR2ISvrqRvRRdgXH8EJslA-mUSHlck6x6D6RTMmnl_Kk1tf9BXBvjQ0DeK10UIzhpP5RIMJU/pub?gid=0&single=true&output=csv",
-  shapes: "https://docs.google.com/spreadsheets/d/e/2PACX-1vS99j5DMR2ISvrqRvRRdgXH8EJslA-mUSHlck6x6D6RTMmnl_Kk1tf9BXBvjQ0DeK10UIzhpP5RIMJU/pub?gid=1623593862&single=true&output=csv",
-};
-
-const parseCSV = (text) => {
-  const rows = [];
-  let row = [], field = "", inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') { if (text[i+1] === '"') { field += '"'; i++; } else inQuotes = false; }
-      else field += c;
-    } else {
-      if (c === '"') inQuotes = true;
-      else if (c === ',') { row.push(field); field = ""; }
-      else if (c === '\n' || c === '\r') {
-        if (c === '\r' && text[i+1] === '\n') i++;
-        row.push(field); field = "";
-        if (row.some(x => x !== "")) rows.push(row);
-        row = [];
-      } else field += c;
-    }
-  }
-  if (field !== "" || row.length) { row.push(field); if (row.some(x=>x!=="")) rows.push(row); }
-  if (rows.length === 0) return [];
-  const headers = rows[0].map(h => h.trim().toLowerCase());
-  return rows.slice(1).map(r => {
-    const obj = {};
-    headers.forEach((h,i) => obj[h] = (r[i] ?? "").trim());
-    return obj;
-  });
-};
-
-const fetchSheet = async (url) => {
-  if (!url) return [];
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    return parseCSV(await res.text());
-  } catch(e) { return []; }
-};
-
-// Default to available=true for any steel not listed in the sheet (fail-open)
-const isAvail = (label, map) => {
-  if (!label) return true;
-  const v = map[label.toLowerCase()];
-  return v === undefined ? true : v;
-};
+// ── Data fetching from Airtable proxy (handled inside App via useEffect) ──
 
 const useIsMobile = () => {
   const [mobile, setMobile] = useState(() => window.innerWidth < 640);
@@ -1425,27 +1168,19 @@ function InfoThumb({ src, link, fit="contain" }) {
 }
 
 // ─── Info Panel ────────────────────────────────────────────────────────────────
-function InfoPanel({section, overrides}) {
-  const data = INFO[section];
-  if (!data) return null;
-
-  // Any sheet row whose key doesn't match an existing hardcoded item
-  // becomes a brand-new entry, grouped separately at the bottom.
-  const usedKeys = new Set(
-    data.groups.flatMap(g => g.items.map(item => item.n.toLowerCase()))
+function InfoPanel({section, infoMap}) {
+  const data = infoMap?.[section];
+  if (!data) return (
+    <div style={{padding:"40px 0", textAlign:"center", color:"#d0d0ca", fontSize:13}}>
+      Loading…
+    </div>
   );
-  const extraItems = Object.values(overrides || {})
-    .filter(ov => ov.key && !usedKeys.has(ov.key.toLowerCase()))
-    .map(ov => ({ n: ov.key, d: ov.desc || "Added via Google Sheets.", img: ov.img, link: ov.link }));
-  const groups = extraItems.length
-    ? [...data.groups, { name:"Added via Sheet", items:extraItems }]
-    : data.groups;
 
   return (
     <div>
       <div style={{fontSize:22, fontWeight:300, color:"#1a1a16", textAlign:"left",
         letterSpacing:"0.02em", marginBottom:24}}>{data.heading}</div>
-      {groups.map((g,gi) => (
+      {data.groups.map((g,gi) => (
         <div key={gi} style={{marginBottom:28}}>
           <div style={{fontSize:9, letterSpacing:"0.18em", textTransform:"uppercase",
             color:"#b0b0aa", marginBottom:12, paddingBottom:8, textAlign:"left",
@@ -1453,10 +1188,9 @@ function InfoPanel({section, overrides}) {
             {g.name}
           </div>
           {g.items.map((item,ii) => {
-            const ov  = overrides?.[item.n.toLowerCase()];
-            const img = ov?.img  || item.img;
-            const link= ov?.link || item.link;
-            const showSvg = item.shape && !img;  // SVG only shown when no photo available
+            const img  = item.img;
+            const link = item.link;
+            const showSvg = item.shape && !img;
             return (
               <div key={ii} style={{display:"flex", gap:14, alignItems:"flex-start", marginBottom:16}}>
                 {showSvg && <ShapeIcon shape={item.shape}/>}
@@ -1488,37 +1222,35 @@ export default function App() {
   const [noteIndex,  setNoteIndex]  = useState(null);
   const [logoClicks, setLogoClicks] = useState(0);
   const [showGame,   setShowGame]   = useState(false);
-  const [salesLang,  setSalesLang]  = useState("en");
-  const [steelAvailability, setSteelAvailability] = useState({});
-  const [woodOverrides,     setWoodOverrides]     = useState({});
-  const [makerOverrides,    setMakerOverrides]     = useState({});
-  const [finishOverrides,   setFinishOverrides]    = useState({});
-  const [shapeOverrides,    setShapeOverrides]     = useState({});
+  // ── Airtable-backed data ──────────────────────────────────────────────────
+  const [steelsData, setSteelsData] = useState({});
+  const [kbData,     setKbData]     = useState([]);
 
   useEffect(() => {
     (async () => {
-      const [steelsRows, woodsRows, makersRows, finishRows, shapesRows] = await Promise.all([
-        fetchSheet(SHEET_CSV.steels),
-        fetchSheet(SHEET_CSV.woods),
-        fetchSheet(SHEET_CSV.makers),
-        fetchSheet(SHEET_CSV.finish),
-        fetchSheet(SHEET_CSV.shapes),
-      ]);
-      const avail = {};
-      steelsRows.forEach(r => { if (r.key) avail[r.key.toLowerCase()] = String(r.available).toLowerCase() !== "false"; });
-      setSteelAvailability(avail);
-
-      const toMap = (rows) => {
-        const m = {};
-        rows.forEach(r => { if (r.key) m[r.key.toLowerCase()] = { key:r.key, img:r.img, link:r.link, desc:r.desc }; });
-        return m;
-      };
-      setWoodOverrides(toMap(woodsRows));
-      setMakerOverrides(toMap(makersRows));
-      setFinishOverrides(toMap(finishRows));
-      setShapeOverrides(toMap(shapesRows));
+      try {
+        const [steelsRes, kbRes] = await Promise.all([
+          fetch("/.netlify/functions/airtable-proxy?resource=steels"),
+          fetch("/.netlify/functions/airtable-proxy?resource=kb"),
+        ]);
+        if (steelsRes.ok) setSteelsData(await steelsRes.json());
+        if (kbRes.ok)     setKbData(await kbRes.json());
+      } catch (e) {
+        console.error("airtable-proxy fetch error:", e);
+      }
     })();
   }, []);
+
+  // Derive steel lookup pairs from Airtable data (longest match first)
+  const steelPairs = useMemo(() =>
+    Object.entries(steelsData)
+      .map(([k,v]) => [norm(k), v])
+      .sort((a,b) => b[0].length - a[0].length),
+    [steelsData]
+  );
+
+  // Build the info map from the flat kbData array
+  const infoMap = useMemo(() => buildInfoMap(kbData), [kbData]);
 
   const setArr = (setter,i,val) =>
     setter(prev => { const n=[...prev]; n[i]=val; return n; });
@@ -1553,7 +1285,7 @@ export default function App() {
       const p = data?.product;
       if (!p) throw new Error("Invalid server response");
       const tags  = Array.isArray(p.tags) ? p.tags : (p.tags ? p.tags.split(", ") : []);
-      const steel = detectSteel(tags, p.title||"", p.body_html||"");
+      const steel = detectSteel(tags, p.title||"", p.body_html||"", steelPairs);
       const specs = parseSpecs(p.body_html);
       setArr(setKnives, i, {
         title:p.title, image:p.images?.[0]?.src,
@@ -1574,11 +1306,10 @@ export default function App() {
   };
 
   const visibleKnives = knives.slice(0,panelCount);
-  const chartKnives = visibleKnives.map(k =>
-    (k?.steel && !isAvail(k.steel.label, steelAvailability)) ? {...k, steel:null} : k
-  );
+  // All steels returned by the Airtable proxy are available (proxy filters available=TRUE)
+  const chartKnives = visibleKnives;
   const hasChart = chartKnives.some(k => k?.steel);
-  const SECTIONS = Object.keys(INFO);
+  const SECTIONS = Object.keys(infoMap).length ? Object.keys(infoMap) : Object.keys(KB_HEADINGS);
 
   return (
     <div style={{minHeight:"100vh", background:"#fafaf8", color:"#1a1a16",
@@ -1655,12 +1386,7 @@ export default function App() {
             </button>
           ))}
         </div>
-        <InfoPanel section={section} overrides={
-          section==="Woods"  ? woodOverrides  :
-          section==="Makers" ? makerOverrides :
-          section==="Finish" ? finishOverrides :
-          section==="Shape"  ? shapeOverrides  : null
-        }/>
+        <InfoPanel section={section} infoMap={infoMap}/>
       </div>
 
       {/* ── Main content ── */}
@@ -1680,7 +1406,7 @@ export default function App() {
               onScan={() => setScanning(i)}
               onRemove={i===2?removeThird:null}
               onNote={() => setNoteIndex(i)}
-              steelUnavailable={knives[i]?.steel ? !isAvail(knives[i].steel.label, steelAvailability) : false}/>
+              steelUnavailable={false}/>
           ))}
         </div>
 
@@ -1711,28 +1437,6 @@ export default function App() {
         )}
 
         {/* Sales Point — generation not yet implemented, UI only */}
-        {hasChart && (
-          <div style={{display:"flex", gap:10, alignItems:"center", flexWrap:"wrap", marginBottom:24}}>
-            <button
-              style={{height:42, background:"#111111", border:"none", color:"#ffffff",
-                fontSize:11, fontWeight:500, letterSpacing:"0.1em",
-                padding:"0 20px", cursor:"pointer", textTransform:"uppercase",
-                borderRadius:2, display:"flex", alignItems:"center", gap:8}}>
-              <span style={{fontSize:13}}>✦</span> Generate Sales Point
-            </button>
-            <select value={salesLang} onChange={e => setSalesLang(e.target.value)}
-              style={{height:42, background:"#ffffff", border:"1px solid #e0e0da", color:"#1a1a16",
-                fontSize:12, padding:"0 12px", borderRadius:2, cursor:"pointer"}}>
-              <option value="en">🇺🇸 English</option>
-              <option value="ja">🇯🇵 日本語</option>
-              <option value="es">🇪🇸 Español</option>
-              <option value="fr">🇫🇷 Français</option>
-              <option value="ar">🇸🇦 العربية</option>
-              <option value="tr">🇹🇷 Türkçe</option>
-              <option value="ru">🇷🇺 Русский</option>
-            </select>
-          </div>
-        )}
 
         {/* Scanner modal */}
         {scanning !== null && (

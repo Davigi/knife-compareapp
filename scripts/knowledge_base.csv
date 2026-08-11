@@ -1,0 +1,103 @@
+category,group,sort_order,title,body,image_url,link,shape_key,published
+Metal,Carbon Steels,1,SK Steel — HRC 58–62,"C 0.95–1.10%. JIS standard basic tool steel. Entry-level, very easy to sharpen. Highly reactive.",,,,true
+Metal,Carbon Steels,2,White Steel #3 (Shirogami 3) — HRC 59–62,"C 0.80–0.90%. Most forgiving Shirogami. Easiest to sharpen, lower retention. Very reactive.",,,,true
+Metal,Carbon Steels,3,White Steel #2 (Shirogami 2) — HRC 61–64,"C 1.00–1.10%. Benchmark carbon steel. Extremely sharp, easy to sharpen. Very reactive.",,,,true
+Metal,Carbon Steels,4,Blue Steel #2 (Aogami 2) — HRC 62–63,"C 1.0–1.2%, W 1.5–2.0%, Cr 0.2–0.5%. Most popular carbon knife steel. Excellent chip resistance.",,,,true
+Metal,Carbon Steels,5,White Steel #1 (Shirogami 1) — HRC 62–65,C 1.25–1.35%. Purest Shirogami. Top Honyaki knives. More brittle than #2.,,,,true
+Metal,Carbon Steels,6,Blue Steel #1 (Aogami 1) — HRC 62–65,"C 1.2–1.4%, W 1.5–2.0%. Superior retention. For experienced users.",,,,true
+Metal,Carbon Steels,7,V-Toku 2 — HRC 62–65,"C 1.0–1.2%, V 0.2–0.3%. Vanadium carbides improve wear resistance. Fine grain.",,,,true
+Metal,Carbon Steels,8,Blue Super (Aogami Super) — HRC 63–67,"C 1.4–1.5%, W 2.0–2.5%, Mo, V. Pinnacle of Yasugi steel. Expert care required.",,,,true
+Metal,Carbon Steels,9,ApexUltra (Takefu) — HRC 64–67,"C 1.55–1.65%, W, V, Mo. Extreme edge retention. Expert-only steel.",,,,true
+Metal,Semi-Stainless,10,SLD (Hitachi) — HRC 60–63,"C 0.95–1.0%, Cr 7.8–8.5%, Mo 1.5%. Patinas rather than rusts. Excellent toughness.",,,,true
+Metal,Semi-Stainless,11,SKD (JIS SKD11) — HRC 62–64,"C 1.4–1.6%, Cr 11–13%. High carbide volume for excellent retention.",,,,true
+Metal,Semi-Stainless,12,HAP-40 (Hitachi PM) — HRC 66–67,"C 1.27%, Cr 4%, W 6%, Mo 5%, V 3%, Co 8%. Extreme hardness. Requires diamond stones.",,,,true
+Metal,Stainless,13,MV (Molybdenum Vanadium) — HRC 56–58,"C 0.60–0.70%, Cr 13–14%. Entry-level. Low retention, excellent toughness.",,,,true
+Metal,Stainless,14,AUS-8 (Aichi) — HRC 57–59,"C 0.70–0.75%, Cr 13–14.5%. Balanced, forgiving. Easy to sharpen.",,,,true
+Metal,Stainless,15,VG-1 (Takefu) — HRC 57–60,"C 0.60–0.75%, Cr 14–15%. Entry VG series. Low maintenance.",,,,true
+Metal,Stainless,16,VG-5 (Takefu) — HRC 59–61,"C 0.80–0.90%, Cr 14–15%. Mid-range VG. Solid everyday performer.",,,,true
+Metal,Stainless,17,ATS-34 (Hitachi) — HRC 60–62,"C 1.05%, Cr 14%, Mo 4%. Gold standard before PM steels.",,,,true
+Metal,Stainless,18,Swedish Steel (Sandvik) — HRC 60–62,"C 0.65–0.70%, Cr 13.5%. High-purity. Sharpness comparable to carbon steels.",,,,true
+Metal,Stainless,19,VG-10 (Takefu) — HRC 60–62,"C 1.0%, Cr 14.5–15.5%, Mo 1%, Co 1.5%. Industry benchmark premium stainless.",,,,true
+Metal,Stainless,20,VG-MAX (Takefu) — HRC 60–62,"C 1.0%, Cr 15%, V 0.3%, Co 2.5%. Upgraded VG-10. Higher retention.",,,,true
+Metal,Stainless,21,AUS-10 (Aichi) — HRC 60–62,"C 0.95–1.10%, Cr 13–14.5%, Ni. Higher retention than AUS-8.",,,,true
+Metal,Stainless,22,Ginsan / Silver #3 (Hitachi) — HRC 61–62,"C 0.95–1.10%, Cr 13–14.5%. Carbon steel performance, stainless maintenance.",,,,true
+Metal,Stainless,23,Chromax (Hitachi) — HRC 61–63,"C 0.70–0.75%, Cr 13.5%. Emphasis on corrosion resistance. Easy sharpening.",,,,true
+Metal,Stainless,24,COSP / Cobalt Special — HRC 62–64,"C 0.80–0.90%, Cr 13–14%, Co 3–5%. High cobalt allows greater hardness.",,,,true
+Metal,Stainless,25,ZA-18 (Takefu) — HRC 63–65,"C 1.0%, Cr 18%, Co. Near-immune to rust. Ideal for humid kitchens.",,,,true
+Metal,Powder Metallurgy (PM),26,SG2 / R2 — HRC 62–64,"C 1.25%, Cr 14%, V 1.8%, Mo 2.3%. Benchmark PM stainless. Endgame for most professionals.",,,,true
+Metal,Powder Metallurgy (PM),27,FAXR2 (Takefu) — HRC 63–64,"C 1.3%, Cr 14%, Mo 2.5%, V 2.0%. Close to SG2. Excellent wear resistance.",,,,true
+Metal,Powder Metallurgy (PM),28,SPG STRIX (Takefu) — HRC 63–64,"C 1.4%, Cr 14%, V 2.4%, Mo 2.0%. At or above SG2 in performance.",,,,true
+Metal,Powder Metallurgy (PM),29,VG XEOS (Takefu) — HRC 63–65,"C 1.2–1.4%, V 1.5–2.0%, Mo 2.0–2.5%. Bridges VG-10 and SG2.",,,,true
+Metal,Powder Metallurgy (PM),30,SRS-13 (Nachi-Fujikoshi) — HRC 63–65,"C 1.3%, Cr 13.5%, V 3%. High vanadium for outstanding retention.",,,,true
+Metal,Powder Metallurgy (PM),31,ZDP-189 (Hitachi) — HRC 67–69,"C 3.0%, Cr 20%. Extreme hardness. Very brittle. Expert-only.",,,,true
+Shape,Double Bevel,1,Gyuto,Japanese chef's knife. Versatile all-purpose blade. 180–270mm.,/Gyuto.png,,gyuto,true
+Shape,Double Bevel,2,Santoku,"Three virtues: meat, fish, vegetables. Shorter, lighter than gyuto. 165–190mm.",/Santoku.png,,santoku,true
+Shape,Double Bevel,3,Nakiri,Vegetable knife. Straight edge for push-cutting. 150–180mm.,/Nakiri.png,,nakiri,true
+Shape,Double Bevel,4,Sujihiki,"Slicing knife. Long, thin blade minimises tearing. 240–330mm.",/Sujihiki.png,,sujihiki,true
+Shape,Double Bevel,5,Bunka,Reverse tanto tip. Great for precision cuts. 165–200mm.,/Bunka.png,,bunka,true
+Shape,Double Bevel,6,Honesuki,Boning knife. Stiff triangular blade for poultry. 145–165mm.,/Honesuki.png,,honesuki,true
+Shape,Double Bevel,7,Petty,Small utility knife for detail work and peeling. 120–180mm.,/Petty.png,,petty,true
+Shape,Single Bevel (Traditional),8,Deba,"Heavy fish butchery knife. Handles heads, bones and scales. 150–210mm.",/Deba.png,,deba,true
+Shape,Single Bevel (Traditional),9,Yanagiba,Sashimi slicer. Long pull-cut for clean fish slices. 240–360mm.,/Yanagiba.png,,yanagiba,true
+Shape,Single Bevel (Traditional),10,Usuba,Vegetable knife for katsuramuki thin sheets. 180–240mm.,/Usuba.png,,usuba,true
+Shape,Single Bevel (Traditional),11,Kiritsuke,Multi-purpose single-bevel. Extremely difficult to master. Status symbol.,/Kiritsuke.png,,kiritsuke,true
+Makers,Sakai Region,1,Sakai Takayuki,One of the largest Sakai producers. Wide range from entry-level to professional grade.,,https://www.musashihamono.com/search?q=Sakai+Takayuki,,true
+Makers,Sakai Region,2,Takeshi Saji,Master smith known for exquisite Damascus patterns and premium materials.,,https://www.musashihamono.com/search?q=Takeshi+Saji,,true
+Makers,Sakai Region,3,Morihei / Hiden,Traditional maker known for exceptional single-bevel knives and hand finishing.,,https://www.musashihamono.com/search?q=Morihei,,true
+Makers,Echizen & Other Regions,4,Yoshimi Kato,"Award-winning blacksmith. Exceptional grinds, SG2 and Damascus specialist.",,https://www.musashihamono.com/search?q=Yoshimi+Kato,,true
+Makers,Echizen & Other Regions,5,Yu Kurosaki,"Modern master. Innovative surface patterns, exceptional balance and fit & finish.",,https://www.musashihamono.com/search?q=Yu+Kurosaki,,true
+Makers,Echizen & Other Regions,6,Tosa Tradition,Kochi Prefecture. Utilitarian high-performance knives with excellent value.,,https://www.musashihamono.com/search?q=Tosa,,true
+Terminology,Construction Terms,1,Honbazuke,Initial edge setting by the maker. Establishes the final cutting geometry.,,,,true
+Terminology,Construction Terms,2,Honyaki,"Single steel construction. Highest grade, hamon visible. Requires expert maintenance.",,,,true
+Terminology,Construction Terms,3,Kasumi,"Mirror edge bevel, misty body from forge work. Classic Japanese aesthetic.",,,,true
+Terminology,Construction Terms,4,Kurouchi,"Forge scale left intact. Rustic look, protective, reduces food adhesion.",,,,true
+Terminology,Construction Terms,5,Tsuchime,Hand-hammered dimple texture. Decorative and reduces food sticking.,,,,true
+Terminology,Construction Terms,6,Nashiji,"Pear-skin matte texture. Effective food release, refined appearance.",,,,true
+Terminology,Geometry & Parts,7,Ha,The cutting edge of the blade.,,,,true
+Terminology,Geometry & Parts,8,Mune,The spine (back) of the blade.,,,,true
+Terminology,Geometry & Parts,9,Shinogi,Transition line between the flat and the beveled edge section.,,,,true
+Terminology,Geometry & Parts,10,HRC,Rockwell Hardness Scale C. Higher = better retention but more brittle.,,,,true
+Terminology,Geometry & Parts,11,Single Bevel,Edge ground on one side only. Traditional Japanese. Right or left-handed specific.,,,,true
+Terminology,Geometry & Parts,12,Double Bevel,Edge ground symmetrically. Works for both left and right-handed users.,,,,true
+Usages,By Task,1,Fish Butchery,"Deba. Weight and single bevel handle heads, bones and scales.",,,,true
+Usages,By Task,2,Sashimi / Sushi,"Yanagiba. Long pull-cut creates clean, undamaged fish slices.",,,,true
+Usages,By Task,3,Vegetable Prep,Nakiri for everyday prep. Usuba for katsuramuki and precise julienne.,,,,true
+Usages,By Task,4,General Cooking,Gyuto or Santoku as workhorse knives for most kitchen tasks.,,,,true
+Usages,By Task,5,Meat Slicing,"Sujihiki. Long blade covers the full cut, minimising tearing.",,,,true
+Usages,By Task,6,Poultry Breakdown,Honesuki. Stiff blade follows bone structure closely.,,,,true
+Usages,By Task,7,Detail / Garnish,"Petty. Fine precision work, peeling and garnishes.",,,,true
+Finish,Finish Types,1,Kasumi,Mirror edge with misty body. The classic Japanese aesthetic.,/Kasumi.png,,,true
+Finish,Finish Types,2,Kurouchi (Blacksmith),"Forge scale intact. Rustic, protective patina. Excellent food release.",/Kurouchi.png,,,true
+Finish,Finish Types,3,Migaki (Mirror),Fully polished blade. Maximum visual impact. Shows scratches over time.,/Migaki.png,,,true
+Finish,Finish Types,4,Nashiji (Pear Skin),Textured matte. Very effective food release.,/Nashiji.jpg,,,true
+Finish,Finish Types,5,Tsuchime (Hammered),Hand-hammered dimples. Highly decorative with anti-stick properties.,/Tsuchime.jpeg,,,true
+Finish,Finish Types,6,Suminagashi (Damascus),Folded steel pattern. Each blade is unique.,/Damascus.jpg,,,true
+Woods,Traditional Japanese,1,Ho (Magnolia),"Lightweight, absorbs moisture. Traditional Wa handle choice. Replaceable.",/Magnolia.jpg,,,true
+Woods,Traditional Japanese,2,Walnut (Kurumi),"Dense, beautiful grain. Natural oils provide water resistance.",/Walnut.jpg,,,true
+Woods,Traditional Japanese,3,Cherry (Sakura),"Hard, warm reddish tones. Good balance of grip and aesthetics.",/Cherry.jpg,,,true
+Woods,Traditional Japanese,4,Chestnut (Kuri),"Traditional choice. Warm brown tones, medium weight.",/Chestnut.jpg,,,true
+Woods,Traditional Japanese,5,Ebony,Very dense and dark. Premium traditional choice. Excellent water resistance.,/Ebony.jpg,,,true
+Woods,Modern & Premium,6,Stabilized Wood,"Resin-impregnated. Highly water resistant, vivid colors, very stable.",,,,true
+Woods,Modern & Premium,7,Rosewood,"Rich reddish-brown, high natural oil content. Dense and durable.",/Rosewood.jpg,,,true
+Woods,Modern & Premium,8,Ambrosia Maple,Blue-grey streaks from beetle galleries. Highly decorative.,/Maple.jpg,,,true
+Woods,Modern & Premium,9,Pakkawood,"Resin-compressed layered wood. Stable, water resistant, various colors.",,,,true
+Packs,By Number of Knives,1,1 Knife,"Santoku 165–180mm in VG-10 or Ginsan. The single all-rounder that handles meat, fish, and vegetables comfortably.",,,,true
+Packs,By Number of Knives,2,2 Knives,"Gyuto + Petty. The classic combo — one for everything, one for detail work and fruit.",,,,true
+Packs,By Number of Knives,3,3 Knives,"Gyuto + Petty + Nakiri. Covers protein, detail work, and vegetables.",,,,true
+Packs,By Number of Knives,4,4 Knives,Gyuto + Petty + Nakiri + Sujihiki. Adds a slicer for larger cuts of meat and fish.,,,,true
+Packs,By Number of Knives,5,5 Knives,Gyuto + Santoku + Nakiri + Petty + Deba. A well-rounded kitchen set covering daily tasks plus fish butchery.,,,,true
+Packs,By Number of Knives,6,6 Knives,Gyuto + Santoku + Nakiri + Petty + Deba + Sujihiki. The complete professional set.,,,,true
+Packs,By Customer Type,7,Chef,"Gyuto 240–270mm in premium steel (Blue Super, SG2). Performance over comfort, built for volume.",,,,true
+Packs,By Customer Type,8,Sushi Chef,Yanagiba + Deba + Usuba. The traditional single-bevel set for itamae work.,,,,true
+Packs,By Customer Type,9,Gift,"Santoku or Petty with a decorative handle (Damascus, premium wood) in a gift box.",,,,true
+Packs,By Customer Type,10,Fisher,Deba + a sturdy Petty for on-the-spot cleaning and filleting.,,,,true
+Packs,By Customer Type,11,Hunter,"Thick-bladed knife in a tough steel (SLD, SKD) built for processing game.",,,,true
+General,Care & Maintenance,1,Never dishwasher,Hand wash and dry immediately. Dishwashers destroy handles and edges.,,,,true
+General,Care & Maintenance,2,Cutting surfaces,Wood or plastic only. Glass and ceramic destroy any edge quickly.,,,,true
+General,Care & Maintenance,3,Carbon steel care,Dry immediately after use. Apply camellia oil for storage.,,,,true
+General,Care & Maintenance,4,Sharpening,"Whetstones: 400–1000 grit for repair, 1000–3000 regular, 6000+ polishing.",,,,true
+General,Care & Maintenance,5,Storage,"Magnetic strip, knife block, or blade guards. Never loose in drawers.",,,,true
+General,Customer Notes,6,Tax-Free Shopping,Non-resident visitors receive 6% tax-free discount. Passport required at purchase.,,,,true
+General,Customer Notes,7,Beginner,"VG-10 or Ginsan. Stainless, forgiving, low maintenance. Gyuto or Santoku.",,,,true
+General,Customer Notes,8,Intermediate,Blue #2. Better performance. Requires immediate drying after use.,,,,true
+General,Customer Notes,9,Advanced,"White #1, Honyaki, single-bevel. Maximum performance. Full care commitment.",,,,true
