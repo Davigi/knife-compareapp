@@ -120,6 +120,24 @@ export default function App() {
           externalUrl: input,
         });
       } else {
+        // ── Steel name shortcut — check BEFORE hitting any API ──
+        // If the input looks like a known steel name (SG2, VG-10, Aogami, etc.)
+        // show its profile directly without searching the Musashi shop.
+        // This prevents "SG2" from returning a random Musashi knife in a different steel.
+        if (!isMusashi) {
+          const steelDirect = detectSteel([], input, "", steelPairs);
+          if (steelDirect) {
+            setArr(setKnives, i, {
+              title: steelDirect.label || input, image: null,
+              price: NaN, currency: "",
+              type: null, vendor: null, tags: [],
+              description: steelDirect.desc || "", specs: [],
+              steel: steelDirect, handle: null, externalUrl: null, steelOnly: true,
+            });
+            return;
+          }
+        }
+
         // ── Musashi URL or keyword search ──
         let handle;
         if (isMusashi) {
@@ -128,18 +146,6 @@ export default function App() {
           try {
             handle = await searchHandle(input);
           } catch {
-            // Musashi search found nothing — try matching input as a steel name directly
-            const steel = detectSteel([], input, "", steelPairs);
-            if (steel) {
-              setArr(setKnives, i, {
-                title: steel.label || input, image: null,
-                price: NaN, currency: "",
-                type: null, vendor: null, tags: [],
-                description: steel.desc || "", specs: [],
-                steel, handle: null, externalUrl: null, steelOnly: true,
-              });
-              return;
-            }
             throw new Error(`No product or steel found for "${input}"`);
           }
         }
