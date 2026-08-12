@@ -92,22 +92,51 @@ export default function App() {
     setArr(setErrors,  i, null);
     setArr(setKnives,  i, null);
     try {
-      const handle = isUrl(input) ? extractHandle(input) : await searchHandle(input);
-      const qs = new URLSearchParams({ resource: "products", handle, currency: "JPY" });
-      const r = await fetch(`/.netlify/functions/shopify-proxy?${qs}`);
-      if (!r.ok) throw new Error(`Product not found: "${handle}"`);
-      const data = await r.json();
-      const p    = data?.product;
-      if (!p) throw new Error("Invalid server response");
-      const tags  = Array.isArray(p.tags) ? p.tags : (p.tags ? p.tags.split(", ") : []);
-      const steel = detectSteel(tags, p.title || "", p.body_html || "", steelPairs);
-      const specs = parseSpecs(p.body_html);
-      setArr(setKnives, i, {
-        title: p.title, image: p.images?.[0]?.src,
-        price: parseFloat(p.variants?.[0]?.price || 0),
-        type: p.product_type, vendor: p.vendor,
-        tags, description: p.body_html, specs, steel, handle,
-      });
+      const isMusashi = input.includes("musashihamono.com");
+
+      if (isUrl(input) && !isMusashi) {
+        // ── External URL: scrape the page and detect steel client-side ──
+        const qs = new URLSearchParams({ url: input });
+        const r  = await fetch(`/.netlify/functions/scrape-steel?${qs}`);
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          throw new Error(err.error || `Could not fetch page (${r.status})`);
+        }
+        const data  = await r.json();
+        const steel = detectSteel([], data.title || "", data.body || "", steelPairs);
+        setArr(setKnives, i, {
+          title:       data.title || input,
+          image:       data.image || null,
+          price:       data.price ?? NaN,
+          type:        null,
+          vendor:      null,
+          tags:        [],
+          description: data.description || "",
+          specs:       [],
+          steel,
+          handle:      null,
+          externalUrl: input,
+        });
+      } else {
+        // ── Musashi URL or keyword search ──
+        const handle = isMusashi ? extractHandle(input) : await searchHandle(input);
+        const qs = new URLSearchParams({ resource: "products", handle, currency: "JPY" });
+        const r  = await fetch(`/.netlify/functions/shopify-proxy?${qs}`);
+        if (!r.ok) throw new Error(`Product not found: "${handle}"`);
+        const data = await r.json();
+        const p    = data?.product;
+        if (!p) throw new Error("Invalid server response");
+        const tags  = Array.isArray(p.tags) ? p.tags : (p.tags ? p.tags.split(", ") : []);
+        const steel = detectSteel(tags, p.title || "", p.body_html || "", steelPairs);
+        const specs = parseSpecs(p.body_html);
+        setArr(setKnives, i, {
+          title: p.title, image: p.images?.[0]?.src,
+          price: parseFloat(p.variants?.[0]?.price || 0),
+          type: p.product_type, vendor: p.vendor,
+          tags, description: p.body_html, specs, steel, handle,
+          externalUrl: null,
+        });
+      }
     } catch (err) {
       setArr(setErrors, i, err.message);
     } finally {

@@ -103,7 +103,7 @@ export default function KnifePanel({
         <div style={{ padding: "0 18px 20px 20px" }}>
           {knife.image && (
             <a
-              href={`https://www.musashihamono.com/products/${knife.handle}`}
+              href={knife.externalUrl || `https://www.musashihamono.com/products/${knife.handle}`}
               target="_blank" rel="noopener noreferrer"
               style={{ display: "block", marginBottom: 16 }}
             >
@@ -198,18 +198,34 @@ export default function KnifePanel({
             </div>
           </Collapsible>
 
-          <div style={{ paddingTop: 14, marginTop: 4, borderTop: "1px solid #f0f0ea" }}>
-            <button
-              onClick={onNote}
-              style={{
-                background: "none", border: "1px solid #e0e0da", color: "#9a9a94",
-                fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase",
-                padding: "8px 16px", cursor: "pointer", borderRadius: 2, width: "100%",
-              }}
-            >
-              ⚑ Report an issue with this product
-            </button>
-          </div>
+          {knife.handle && (
+            <div style={{ paddingTop: 14, marginTop: 4, borderTop: "1px solid #f0f0ea" }}>
+              <button
+                onClick={onNote}
+                style={{
+                  background: "none", border: "1px solid #e0e0da", color: "#9a9a94",
+                  fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase",
+                  padding: "8px 16px", cursor: "pointer", borderRadius: 2, width: "100%",
+                }}
+              >
+                ⚑ Report an issue with this product
+              </button>
+            </div>
+          )}
+          {knife.externalUrl && (
+            <div style={{ paddingTop: 14, marginTop: 4, borderTop: "1px solid #f0f0ea" }}>
+              <a
+                href={knife.externalUrl} target="_blank" rel="noopener noreferrer"
+                style={{
+                  display: "block", textAlign: "center", border: "1px solid #e0e0da",
+                  color: "#9a9a94", fontSize: 10, letterSpacing: "0.12em",
+                  textTransform: "uppercase", padding: "8px 16px", borderRadius: 2,
+                }}
+              >
+                ↗ View original page
+              </a>
+            </div>
+          )}
         </div>
       )}
     </div>
