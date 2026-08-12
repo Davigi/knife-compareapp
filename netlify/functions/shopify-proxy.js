@@ -57,7 +57,7 @@ export const handler = async (event) => {
     });
 
     const body = await res.text();
-    console.log("shopify-proxy ←", res.status, apiPath);
+    console.log("shopify-proxy ←", res.status, resource);
 
     if (!res.ok) {
       console.error("shopify-proxy error body:", body.slice(0, 300));
