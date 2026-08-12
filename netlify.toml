@@ -4,15 +4,10 @@
   functions = "netlify/functions"
 
 # ── Shopify storefront proxy ──────────────────────────────────────────────────
-# Only two endpoints are forwarded — nothing else reaches the Shopify store.
+# Routed through a Netlify Function so we can set proper headers.
+# The dumb [[redirects]] approach caused Shopify to reject requests.
 [[redirects]]
-  from   = "/api/products/*"
-  to     = "https://www.musashihamono.com/products/:splat"
-  status = 200
-  force  = true
-
-[[redirects]]
-  from   = "/api/search/*"
-  to     = "https://www.musashihamono.com/search/:splat"
+  from  = "/api/*"
+  to    = "/.netlify/functions/shopify-proxy"
   status = 200
   force  = true
