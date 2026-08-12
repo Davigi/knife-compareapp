@@ -43,15 +43,26 @@ export default function SteelProfile({ steel, tags, isMobile, unavailableLabel }
 
   return (
     <Collapsible title="Steel Profile" open={!isMobile}>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+      <div style={{ marginBottom: 14 }}>
         <span style={{
+          display: "inline-block",
           padding: "3px 10px", background: bc, color: tc, borderRadius: 2,
           fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 500,
         }}>
           {steel.cat}
         </span>
-        {steel.maker && <span style={{ fontSize: 11, color: "#9a9a94" }}>{steel.maker}</span>}
-        {steel.hrc   && <span style={{ fontSize: 11, color: "#9a9a94" }}>HRC {steel.hrc}</span>}
+        {steel.label && (
+          <div style={{ fontSize: 17, fontWeight: 400, color: "#1a1a16", margin: "7px 0 3px", letterSpacing: "0.01em" }}>
+            {steel.label}
+          </div>
+        )}
+        {(steel.maker || steel.hrc) && (
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            {steel.maker && <span style={{ fontSize: 11, color: "#9a9a94" }}>{steel.maker}</span>}
+            {steel.maker && steel.hrc && <span style={{ color: "#d0d0ca", fontSize: 10 }}>·</span>}
+            {steel.hrc   && <span style={{ fontSize: 11, color: "#9a9a94" }}>HRC {steel.hrc}</span>}
+          </div>
+        )}
       </div>
 
       <p style={{ fontSize: 13, color: "#5a5a56", lineHeight: 1.75, marginBottom: 16 }}>

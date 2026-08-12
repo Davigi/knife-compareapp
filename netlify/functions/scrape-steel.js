@@ -59,6 +59,22 @@ function extractTitle(html) {
   return (html.match(/<title[^>]*>([^<]{1,300})<\/title>/i) || [])[1]?.trim() || "";
 }
 
+// Extract Next.js page props (embedded as __NEXT_DATA__ JSON in <script>)
+function extractNextData(html) {
+  const m = html.match(/<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/);
+  if (!m) return null;
+  try { return JSON.parse(m[1]); } catch { return null; }
+}
+
+// Pull text out of <option> elements (variant / feature-list dropdowns)
+function extractOptionText(html) {
+  const parts = [];
+  const re = /<option[^>]*>([^<]{1,300})<\/option>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) parts.push(m[1].trim());
+  return parts.join(" ");
+}
+
 function htmlToText(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -146,6 +162,10 @@ export const handler = async (event) => {
               : (typeof p.tags === "string" ? p.tags.split(", ").filter(Boolean) : []);
             const body  = htmlToText(p.body_html || "");
             const price = parseFloat(p.variants?.[0]?.price) || null;
+            // Try to get currency from presentment_prices; fall back to TLD guess
+            const presPrice = p.variants?.[0]?.presentment_prices?.[0]?.price;
+            const currency  = presPrice?.currency_code ||
+              (parsed.hostname.endsWith(".jp") ? "JPY" : "");
             console.log("scrape-steel ← Shopify JSON", p.title.slice(0, 60), "tags:", tags.length);
             return {
               statusCode: 200,
@@ -157,6 +177,7 @@ export const handler = async (event) => {
                 image:       p.images?.[0]?.src || null,
                 price,
                 tags,
+                currency,
                 url:         rawUrl,
               }),
             };
@@ -207,10 +228,24 @@ export const handler = async (event) => {
       extractMeta(html, "product:price:amount") ||
       extractMeta(html, "og:price:amount")      ||
       extractMeta(html, "twitter:data1");
-    const price  = rawPrice ? parseFloat(rawPrice.replace(/[^\d.]/g, "")) : null;
-    const body   = htmlToText(html);
+    const price    = rawPrice ? parseFloat(rawPrice.replace(/[^\d.]/g, "")) : null;
+    const currency =
+      extractMeta(html, "product:price:currency") ||
+      extractMeta(html, "og:price:currency")      || "";
 
-    console.log("scrape-steel ← OK", title.slice(0, 80));
+    // Augment body text with option/dropdown content and Next.js embedded data
+    // so steel detection can find material info hidden in JS-rendered dropdowns.
+    const optionText = extractOptionText(html);
+    const nextData   = extractNextData(html);
+    const extra      = [
+      optionText,
+      nextData ? JSON.stringify(nextData).slice(0, 6000) : "",
+    ].join(" ").trim();
+    const body = extra
+      ? (htmlToText(html) + " " + extra).slice(0, 15000)
+      : htmlToText(html);
+
+    console.log("scrape-steel ← OK", title.slice(0, 80), currency || "");
 
     return {
       statusCode: 200,
@@ -218,7 +253,7 @@ export const handler = async (event) => {
         "Content-Type":  "application/json",
         "Cache-Control": "public, max-age=300",
       },
-      body: JSON.stringify({ title, description: desc, body, image, price, tags: [], url: rawUrl }),
+      body: JSON.stringify({ title, description: desc, body, image, price, tags: [], currency, url: rawUrl }),
     };
   } catch (err) {
     console.error("scrape-steel error:", err.message);

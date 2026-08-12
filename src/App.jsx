@@ -109,6 +109,7 @@ export default function App() {
           title:       data.title || input,
           image:       data.image || null,
           price:       data.price ?? NaN,
+          currency:    data.currency || "",
           type:        null,
           vendor:      null,
           tags,
@@ -120,7 +121,29 @@ export default function App() {
         });
       } else {
         // ── Musashi URL or keyword search ──
-        const handle = isMusashi ? extractHandle(input) : await searchHandle(input);
+        let handle;
+        if (isMusashi) {
+          handle = extractHandle(input);
+        } else {
+          try {
+            handle = await searchHandle(input);
+          } catch {
+            // Musashi search found nothing — try matching input as a steel name directly
+            const steel = detectSteel([], input, "", steelPairs);
+            if (steel) {
+              setArr(setKnives, i, {
+                title: steel.label || input, image: null,
+                price: NaN, currency: "",
+                type: null, vendor: null, tags: [],
+                description: steel.desc || "", specs: [],
+                steel, handle: null, externalUrl: null, steelOnly: true,
+              });
+              return;
+            }
+            throw new Error(`No product or steel found for "${input}"`);
+          }
+        }
+
         const qs = new URLSearchParams({ resource: "products", handle, currency: "JPY" });
         const r  = await fetch(`/.netlify/functions/shopify-proxy?${qs}`);
         if (!r.ok) throw new Error(`Product not found: "${handle}"`);
@@ -133,6 +156,7 @@ export default function App() {
         setArr(setKnives, i, {
           title: p.title, image: p.images?.[0]?.src,
           price: parseFloat(p.variants?.[0]?.price || 0),
+          currency: "JPY",
           type: p.product_type, vendor: p.vendor,
           tags, description: p.body_html, specs, steel, handle,
           externalUrl: null,

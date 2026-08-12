@@ -9,8 +9,13 @@ export default function KnifePanel({
   onInput, onSearch, onScan, onRemove, steelUnavailable, onNote,
 }) {
   const accent  = ACCENTS[index];
-  const taxFree = knife ? Math.round(knife.price * 0.94) : null;
   const isMobile = useIsMobile();
+
+  const CURRENCY_SYMBOLS = { JPY: "¥", USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "C$" };
+  const currency       = knife?.currency || "JPY";
+  const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
+  const isJPY          = currency === "JPY" || currency === "";
+  const taxFree        = knife && isJPY && !isNaN(knife.price) ? Math.round(knife.price * 0.94) : null;
 
   return (
     <div style={{ border: "1px solid #e8e8e3", background: "#ffffff", position: "relative", minHeight: 200 }}>
@@ -101,7 +106,22 @@ export default function KnifePanel({
       {/* Knife data */}
       {knife && !loading && (
         <div style={{ padding: "0 18px 20px 20px" }}>
-          {knife.image && (
+          {/* Image / placeholder */}
+          {knife.steelOnly ? (
+            <div style={{
+              width: "100%", aspectRatio: "4/3",
+              background: "#f5f5f0",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              gap: 8, marginBottom: 16,
+              borderBottom: "1px solid #f0f0ea",
+            }}>
+              <div style={{ fontSize: 36, color: "#d8d8d3" }}>◇</div>
+              <div style={{ fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: "#c0c0ba" }}>
+                Steel reference
+              </div>
+            </div>
+          ) : knife.image ? (
             <a
               href={knife.externalUrl || `https://www.musashihamono.com/products/${knife.handle}`}
               target="_blank" rel="noopener noreferrer"
@@ -115,7 +135,7 @@ export default function KnifePanel({
                 }}
               />
             </a>
-          )}
+          ) : null}
 
           {knife.steel && !steelUnavailable && (
             <div style={{
@@ -149,27 +169,31 @@ export default function KnifePanel({
             </div>
           )}
 
-          {/* Price */}
-          <div style={{
-            display: "flex", gap: 24, alignItems: "flex-start",
-            padding: "14px 0", marginBottom: 14,
-            borderTop: "1px solid #e8e8e3", borderBottom: "1px solid #e8e8e3",
-          }}>
-            <div>
-              <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#b0b0aa", marginBottom: 4, fontWeight: 400 }}>Price</div>
-              <div style={{ fontSize: 22, fontWeight: 300, color: "#1a1a16" }}>
-                <span style={{ fontSize: 13, color: "#9a9a94", marginRight: 1 }}>¥</span>
-                {fmtPrice(knife.price)}
+          {/* Price — hidden for steel-only entries */}
+          {!knife.steelOnly && !isNaN(knife.price) && (
+            <div style={{
+              display: "flex", gap: 24, alignItems: "flex-start",
+              padding: "14px 0", marginBottom: 14,
+              borderTop: "1px solid #e8e8e3", borderBottom: "1px solid #e8e8e3",
+            }}>
+              <div>
+                <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#b0b0aa", marginBottom: 4, fontWeight: 400 }}>Price</div>
+                <div style={{ fontSize: 22, fontWeight: 300, color: "#1a1a16" }}>
+                  <span style={{ fontSize: 13, color: "#9a9a94", marginRight: 1 }}>{currencySymbol}</span>
+                  {fmtPrice(knife.price)}
+                </div>
               </div>
+              {taxFree && (
+                <div>
+                  <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#2a7a40", marginBottom: 4, fontWeight: 400 }}>Tax-Free −6%</div>
+                  <div style={{ fontSize: 22, fontWeight: 300, color: "#2a7a40" }}>
+                    <span style={{ fontSize: 13, color: "#5aaa70", marginRight: 1 }}>¥</span>
+                    {fmtPrice(taxFree)}
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#2a7a40", marginBottom: 4, fontWeight: 400 }}>Tax-Free −6%</div>
-              <div style={{ fontSize: 22, fontWeight: 300, color: "#2a7a40" }}>
-                <span style={{ fontSize: 13, color: "#5aaa70", marginRight: 1 }}>¥</span>
-                {fmtPrice(taxFree)}
-              </div>
-            </div>
-          </div>
+          )}
 
           {knife.specs.length > 0 && (
             <Collapsible title="Technical Specifications" open={!isMobile}>
