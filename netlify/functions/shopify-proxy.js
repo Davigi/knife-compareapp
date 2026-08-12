@@ -39,10 +39,11 @@ export const handler = async (event) => {
   const qs = event.rawQuery ? `?${event.rawQuery}` : "";
   const shopifyUrl = `${SHOPIFY_ORIGIN}/${apiPath}${qs}`;
 
+  console.log("shopify-proxy →", shopifyUrl);
+
   try {
     const res = await fetch(shopifyUrl, {
       headers: {
-        // Tell Shopify this is a legitimate browser-like request
         "Accept":          "application/json, text/plain, */*",
         "Accept-Language": "en-US,en;q=0.9,ja;q=0.8",
         "User-Agent":
@@ -53,6 +54,11 @@ export const handler = async (event) => {
     });
 
     const body = await res.text();
+    console.log("shopify-proxy ←", res.status, apiPath);
+
+    if (!res.ok) {
+      console.error("shopify-proxy error body:", body.slice(0, 300));
+    }
 
     return {
       statusCode: res.status,
@@ -63,7 +69,7 @@ export const handler = async (event) => {
       body,
     };
   } catch (err) {
-    console.error("shopify-proxy error:", err.message);
+    console.error("shopify-proxy fetch failed:", err.message);
     return {
       statusCode: 502,
       body: JSON.stringify({ error: "Failed to reach Shopify store" }),
