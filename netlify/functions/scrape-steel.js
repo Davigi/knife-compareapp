@@ -114,6 +114,61 @@ export const handler = async (event) => {
 
   console.log("scrape-steel →", rawUrl);
 
+  // ── Shopify auto-detection ──────────────────────────────────────────────────
+  // If the URL has /products/ in the path, try Shopify's product JSON API first.
+  // This returns clean structured data (tags, images, price, body_html) instead
+  // of us having to parse raw HTML — much more reliable for steel detection.
+  if (parsed.pathname.includes("/products/")) {
+    const cleanPath = parsed.pathname.replace(/\/$/, "").replace(/\.json$/, "");
+    const jsonUrl   = `${parsed.origin}${cleanPath}.json`;
+    try {
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+      const shopifyRes = await fetch(jsonUrl, {
+        signal: ctrl.signal,
+        headers: {
+          "Accept":          "application/json, text/plain, */*",
+          "Accept-Language": "en-US,en;q=0.9,ja;q=0.8",
+          "User-Agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Referer":         parsed.origin + "/",
+        },
+      });
+      clearTimeout(tid);
+
+      if (shopifyRes.ok) {
+        const ct = shopifyRes.headers.get("content-type") || "";
+        if (ct.includes("json")) {
+          const shopifyData = await shopifyRes.json().catch(() => null);
+          const p = shopifyData?.product;
+          if (p?.title) {
+            const tags  = Array.isArray(p.tags)
+              ? p.tags
+              : (typeof p.tags === "string" ? p.tags.split(", ").filter(Boolean) : []);
+            const body  = htmlToText(p.body_html || "");
+            const price = parseFloat(p.variants?.[0]?.price) || null;
+            console.log("scrape-steel ← Shopify JSON", p.title.slice(0, 60), "tags:", tags.length);
+            return {
+              statusCode: 200,
+              headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=300" },
+              body: JSON.stringify({
+                title:       p.title,
+                description: p.body_html || "",
+                body,
+                image:       p.images?.[0]?.src || null,
+                price,
+                tags,
+                url:         rawUrl,
+              }),
+            };
+          }
+        }
+      }
+    } catch {
+      // Shopify JSON not available — fall through to HTML scraping
+    }
+  }
+
+  // ── HTML scraping (fallback) ────────────────────────────────────────────────
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -163,7 +218,7 @@ export const handler = async (event) => {
         "Content-Type":  "application/json",
         "Cache-Control": "public, max-age=300",
       },
-      body: JSON.stringify({ title, description: desc, body, image, price, url: rawUrl }),
+      body: JSON.stringify({ title, description: desc, body, image, price, tags: [], url: rawUrl }),
     };
   } catch (err) {
     console.error("scrape-steel error:", err.message);

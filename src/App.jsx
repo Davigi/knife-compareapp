@@ -103,14 +103,15 @@ export default function App() {
           throw new Error(err.error || `Could not fetch page (${r.status})`);
         }
         const data  = await r.json();
-        const steel = detectSteel([], data.title || "", data.body || "", steelPairs);
+        const tags  = Array.isArray(data.tags) ? data.tags : [];
+        const steel = detectSteel(tags, data.title || "", data.body || "", steelPairs);
         setArr(setKnives, i, {
           title:       data.title || input,
           image:       data.image || null,
           price:       data.price ?? NaN,
           type:        null,
           vendor:      null,
-          tags:        [],
+          tags,
           description: data.description || "",
           specs:       [],
           steel,
