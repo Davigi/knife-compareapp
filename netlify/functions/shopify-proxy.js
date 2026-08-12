@@ -15,23 +15,38 @@ const SHOPIFY_ORIGIN = "https://www.musashihamono.com";
 const ALLOWED_PREFIXES = ["products/", "search/"];
 
 export const handler = async (event) => {
+  // Debug: log everything Netlify passes so we can see the real values
+  console.log("shopify-proxy called:", JSON.stringify({
+    method:  event.httpMethod,
+    path:    event.path,
+    rawUrl:  event.rawUrl,
+    rawQuery: event.rawQuery,
+  }));
+
   if (event.httpMethod !== "GET") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  // Parse the original request URL to extract the path after /api/
+  // Try event.path first (Netlify sets this to the original path when via redirect),
+  // then fall back to parsing rawUrl
   let apiPath;
   try {
-    const url = new URL(event.rawUrl);
-    // url.pathname looks like /api/products/knife.json or /api/search/suggest.json
-    apiPath = url.pathname.replace(/^\/api\//, "");
+    const fromPath = (event.path || "").replace(/^\/api\//, "");
+    const fromUrl  = new URL(event.rawUrl).pathname.replace(/^\/api\//, "");
+    // Use whichever one looks like a Shopify path
+    apiPath = ALLOWED_PREFIXES.some((p) => fromPath.startsWith(p))
+      ? fromPath
+      : fromUrl;
   } catch {
     return { statusCode: 400, body: JSON.stringify({ error: "Invalid request URL" }) };
   }
 
+  console.log("shopify-proxy apiPath:", apiPath);
+
   // SSRF guard — only allow the two known Shopify endpoints
   const allowed = ALLOWED_PREFIXES.some((p) => apiPath.startsWith(p));
   if (!allowed) {
+    console.error("shopify-proxy SSRF blocked:", apiPath);
     return { statusCode: 403, body: JSON.stringify({ error: "Forbidden resource" }) };
   }
 
