@@ -12,9 +12,9 @@ export default function KnifePanel({
   const isMobile = useIsMobile();
 
   const CURRENCY_SYMBOLS = { JPY: "¥", USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "C$" };
-  const currency       = knife?.currency || "JPY";
+  const currency       = knife?.currency || "JPY";  // Musashi products always JPY
   const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
-  const isJPY          = currency === "JPY" || currency === "";
+  const isJPY          = currency === "JPY";
   const taxFree        = knife && isJPY && !isNaN(knife.price) ? Math.round(knife.price * 0.94) : null;
 
   return (

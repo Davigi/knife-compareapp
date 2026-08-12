@@ -59,6 +59,40 @@ function extractTitle(html) {
   return (html.match(/<title[^>]*>([^<]{1,300})<\/title>/i) || [])[1]?.trim() || "";
 }
 
+// Extract price + currency from JSON-LD structured data (schema.org Product)
+// This is the most reliable source — used by Shopify, WooCommerce, most e-commerce.
+function extractJsonLdProduct(html) {
+  const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    try {
+      const data  = JSON.parse(m[1]);
+      const items = Array.isArray(data) ? data.flat(2) : [data];
+      for (const item of items) {
+        if (item?.["@type"] !== "Product") continue;
+        const offers  = Array.isArray(item.offers) ? item.offers[0] : item.offers;
+        if (!offers) continue;
+        const rawP    = String(offers.price ?? "").replace(/[^\d.]/g, "");
+        const price   = rawP ? parseFloat(rawP) : null;
+        const currency = (offers.priceCurrency || "").toUpperCase();
+        if (price) return { price, currency };
+      }
+    } catch { /* skip malformed */ }
+  }
+  return null;
+}
+
+// Best-effort currency from TLD when meta tags are absent.
+// Knife stores are overwhelmingly JPY (.jp) or USD; list the unambiguous ones.
+function guessCurrencyByHost(hostname) {
+  if (hostname.endsWith(".jp"))                              return "JPY";
+  if (hostname.endsWith(".co.uk") || hostname.endsWith(".uk")) return "GBP";
+  if (hostname.endsWith(".au"))                              return "AUD";
+  if (hostname.endsWith(".ca"))                              return "CAD";
+  if (/\.(de|fr|it|es|nl|be|at|eu|fi|pt|gr|se|no|dk)$/.test(hostname)) return "EUR";
+  return "USD"; // .com / .net / .us / unknown
+}
+
 // Extract Next.js page props (embedded as __NEXT_DATA__ JSON in <script>)
 function extractNextData(html) {
   const m = html.match(/<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/);
@@ -164,8 +198,7 @@ export const handler = async (event) => {
             const price = parseFloat(p.variants?.[0]?.price) || null;
             // Try to get currency from presentment_prices; fall back to TLD guess
             const presPrice = p.variants?.[0]?.presentment_prices?.[0]?.price;
-            const currency  = presPrice?.currency_code ||
-              (parsed.hostname.endsWith(".jp") ? "JPY" : "");
+            const currency  = presPrice?.currency_code || guessCurrencyByHost(parsed.hostname);
             console.log("scrape-steel ← Shopify JSON", p.title.slice(0, 60), "tags:", tags.length);
             return {
               statusCode: 200,
@@ -221,17 +254,25 @@ export const handler = async (event) => {
     }
     const html = Buffer.concat(chunks).toString("utf-8");
 
-    const title   = extractMeta(html, "og:title")     || extractTitle(html);
-    const image   = extractMeta(html, "og:image");
-    const desc    = extractMeta(html, "og:description") || extractMeta(html, "description");
-    const rawPrice =
+    const title = extractMeta(html, "og:title") || extractTitle(html);
+    const image = extractMeta(html, "og:image");
+    const desc  = extractMeta(html, "og:description") || extractMeta(html, "description");
+
+    // Price: prefer JSON-LD (schema.org) → og/product meta → skip twitter:data1
+    // (twitter:data1 is unreliable — often ratings or SKUs, not prices)
+    const jsonLd    = extractJsonLdProduct(html);
+    const metaPrice =
       extractMeta(html, "product:price:amount") ||
-      extractMeta(html, "og:price:amount")      ||
-      extractMeta(html, "twitter:data1");
-    const price    = rawPrice ? parseFloat(rawPrice.replace(/[^\d.]/g, "")) : null;
-    const currency =
+      extractMeta(html, "og:price:amount");
+    const price = jsonLd?.price
+      ?? (metaPrice ? parseFloat(metaPrice.replace(/[^\d.]/g, "")) || null : null);
+
+    // Currency: JSON-LD / og meta are most accurate; fall back to TLD heuristic
+    const metaCurrency =
       extractMeta(html, "product:price:currency") ||
-      extractMeta(html, "og:price:currency")      || "";
+      extractMeta(html, "og:price:currency")      ||
+      (jsonLd?.currency || "");
+    const currency = (metaCurrency.toUpperCase() || guessCurrencyByHost(hostname));
 
     // Augment body text with option/dropdown content and Next.js embedded data
     // so steel detection can find material info hidden in JS-rendered dropdowns.
