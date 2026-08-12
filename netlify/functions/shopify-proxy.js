@@ -1,58 +1,46 @@
 /**
  * shopify-proxy.js — Netlify Function
  *
- * Reverse-proxies /api/products/* and /api/search/* to musashihamono.com.
- * Using a Function (vs dumb [[redirects]]) lets us set proper headers so
- * Shopify doesn't reject the request.
+ * Called directly by the app (no redirect needed):
+ *
+ *   GET /.netlify/functions/shopify-proxy?resource=products&handle=knife-name&currency=JPY
+ *   GET /.netlify/functions/shopify-proxy?resource=search&q=gyuto&resources[type]=product&...
  *
  * SSRF protection: only musashihamono.com is ever contacted.
- *
- * GET /api/products/:handle.json?currency=JPY
- * GET /api/search/suggest.json?q=...
  */
 
 const SHOPIFY_ORIGIN = "https://www.musashihamono.com";
-const ALLOWED_PREFIXES = ["products/", "search/"];
 
 export const handler = async (event) => {
-  // Debug: log everything Netlify passes so we can see the real values
-  console.log("shopify-proxy called:", JSON.stringify({
-    method:  event.httpMethod,
-    path:    event.path,
-    rawUrl:  event.rawUrl,
-    rawQuery: event.rawQuery,
-  }));
-
   if (event.httpMethod !== "GET") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  // Try event.path first (Netlify sets this to the original path when via redirect),
-  // then fall back to parsing rawUrl
-  let apiPath;
-  try {
-    const fromPath = (event.path || "").replace(/^\/api\//, "");
-    const fromUrl  = new URL(event.rawUrl).pathname.replace(/^\/api\//, "");
-    // Use whichever one looks like a Shopify path
-    apiPath = ALLOWED_PREFIXES.some((p) => fromPath.startsWith(p))
-      ? fromPath
-      : fromUrl;
-  } catch {
-    return { statusCode: 400, body: JSON.stringify({ error: "Invalid request URL" }) };
+  const p = event.queryStringParameters || {};
+  const resource = p.resource;
+
+  // SSRF guard — only two known resources allowed
+  if (resource !== "products" && resource !== "search") {
+    return { statusCode: 400, body: JSON.stringify({ error: "Invalid resource. Use: products | search" }) };
   }
 
-  console.log("shopify-proxy apiPath:", apiPath);
-
-  // SSRF guard — only allow the two known Shopify endpoints
-  const allowed = ALLOWED_PREFIXES.some((p) => apiPath.startsWith(p));
-  if (!allowed) {
-    console.error("shopify-proxy SSRF blocked:", apiPath);
-    return { statusCode: 403, body: JSON.stringify({ error: "Forbidden resource" }) };
+  // Build Shopify URL based on resource type
+  let shopifyUrl;
+  if (resource === "products") {
+    // ?resource=products&handle=knife-name&currency=JPY
+    const handle   = (p.handle || "").replace(/[^a-z0-9-]/gi, "");
+    const currency = (p.currency || "").replace(/[^A-Z]/g, "");
+    if (!handle) return { statusCode: 400, body: JSON.stringify({ error: "Missing handle" }) };
+    shopifyUrl = `${SHOPIFY_ORIGIN}/products/${handle}.json${currency ? `?currency=${currency}` : ""}`;
+  } else {
+    // ?resource=search&q=...&resources[type]=product&...
+    // Forward all query params except "resource"
+    const fwd = new URLSearchParams();
+    for (const [k, v] of Object.entries(p)) {
+      if (k !== "resource") fwd.append(k, v);
+    }
+    shopifyUrl = `${SHOPIFY_ORIGIN}/search/suggest.json?${fwd.toString()}`;
   }
-
-  // Reconstruct query string from event (Netlify already parses it)
-  const qs = event.rawQuery ? `?${event.rawQuery}` : "";
-  const shopifyUrl = `${SHOPIFY_ORIGIN}/${apiPath}${qs}`;
 
   console.log("shopify-proxy →", shopifyUrl);
 

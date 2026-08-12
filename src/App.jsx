@@ -69,13 +69,14 @@ export default function App() {
 
   // Product search
   const searchHandle = async (query) => {
-    const qs = [
-      `q=${encodeURIComponent(query)}`,
-      `resources[type]=product`,
-      `resources[limit]=5`,
-      `resources[options][fields]=title,product_type,variants.sku,tag,vendor`,
-    ].join("&");
-    const r = await fetch(`/api/search/suggest.json?${qs}`);
+    const qs = new URLSearchParams({
+      resource: "search",
+      q: query,
+      "resources[type]": "product",
+      "resources[limit]": "5",
+      "resources[options][fields]": "title,product_type,variants.sku,tag,vendor",
+    });
+    const r = await fetch(`/.netlify/functions/shopify-proxy?${qs}`);
     if (!r.ok) throw new Error("Search error");
     const data = await r.json();
     const products = data?.resources?.results?.products;
@@ -92,7 +93,8 @@ export default function App() {
     setArr(setKnives,  i, null);
     try {
       const handle = isUrl(input) ? extractHandle(input) : await searchHandle(input);
-      const r = await fetch(`/api/products/${handle}.json?currency=JPY`);
+      const qs = new URLSearchParams({ resource: "products", handle, currency: "JPY" });
+      const r = await fetch(`/.netlify/functions/shopify-proxy?${qs}`);
       if (!r.ok) throw new Error(`Product not found: "${handle}"`);
       const data = await r.json();
       const p    = data?.product;

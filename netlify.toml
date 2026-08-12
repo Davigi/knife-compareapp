@@ -3,11 +3,5 @@
   publish   = "dist"
   functions = "netlify/functions"
 
-# ── Shopify storefront proxy ──────────────────────────────────────────────────
-# Routed through a Netlify Function so we can set proper headers.
-# The dumb [[redirects]] approach caused Shopify to reject requests.
-[[redirects]]
-  from  = "/api/*"
-  to    = "/.netlify/functions/shopify-proxy"
-  status = 200
-  force  = true
+# Shopify requests now go directly to /.netlify/functions/shopify-proxy
+# No redirect needed — the app calls the function URL directly.
