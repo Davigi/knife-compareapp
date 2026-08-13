@@ -25,8 +25,9 @@ export default function App() {
   const [panelCount, setPanelCount] = useState(2);
   const [scanning,   setScanning]   = useState(null);
   const [noteIndex,  setNoteIndex]  = useState(null);
-  const [logoClicks, setLogoClicks] = useState(0);
-  const [showGame,   setShowGame]   = useState(false);
+  const [logoClicks,    setLogoClicks]    = useState(0);
+  const [showGame,      setShowGame]      = useState(false);
+  const [expandedItems, setExpandedItems] = useState({});
 
   // Knife slots
   const [knives,  setKnives]  = useState([null, null, null]);
@@ -62,7 +63,8 @@ export default function App() {
     [steelsData]
   );
   const infoMap  = useMemo(() => buildInfoMap(kbData), [kbData]);
-  const SECTIONS = Object.keys(infoMap).length ? Object.keys(infoMap) : Object.keys(KB_HEADINGS);
+  const SECTIONS = (Object.keys(infoMap).length ? Object.keys(infoMap) : Object.keys(KB_HEADINGS))
+    .filter((k) => k !== "Wiki");
 
   // KB full-text search across all categories
   const kbResults = useMemo(() => {
@@ -312,42 +314,95 @@ export default function App() {
                 ? `No results for "${kbQuery}"`
                 : `${kbResults.length} result${kbResults.length === 1 ? "" : "s"}`}
             </div>
-            {kbResults.map((item, i) => (
-              <div key={i} style={{
-                display: "flex", gap: 12, alignItems: "flex-start",
-                paddingBottom: 16, marginBottom: 16,
-                borderBottom: "1px solid #f0f0ea",
-              }}>
-                {item.img && (
-                  <img
-                    src={item.img} alt={item.n}
-                    style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 2, flexShrink: 0 }}
-                  />
-                )}
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
-                    <span style={{
-                      fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase",
-                      color: "#b0b0aa", background: "#f5f5f0",
-                      padding: "2px 7px", borderRadius: 2,
-                    }}>
-                      {item.cat}
-                    </span>
-                    {item.group && (
-                      <span style={{ fontSize: 9, color: "#c0c0ba", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                        {item.group}
-                      </span>
+            {kbResults.map((item, i) => {
+              const isWiki     = item.cat === "Wiki";
+              const itemKey    = `${item.cat}::${item.n}`;
+              const isExpanded = expandedItems[itemKey];
+              const PREVIEW    = 160;
+              const needsMore  = item.d.length > PREVIEW;
+              return (
+                <div key={i} style={{
+                  paddingBottom: 18, marginBottom: 18,
+                  borderBottom: "1px solid #f0f0ea",
+                }}>
+                  <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                    {item.img && (
+                      <img
+                        src={item.img} alt={item.n}
+                        style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 2, flexShrink: 0 }}
+                      />
                     )}
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "#1a1a16", marginBottom: 3 }}>
-                    {item.n}
-                  </div>
-                  <div style={{ fontSize: 12, color: "#8a8a84", lineHeight: 1.6 }}>
-                    {item.d.length > 120 ? item.d.slice(0, 120) + "…" : item.d}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      {/* Chips row */}
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 5 }}>
+                        <span style={{
+                          fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase",
+                          color: "#b0b0aa", background: "#f5f5f0",
+                          padding: "2px 7px", borderRadius: 2,
+                        }}>
+                          {item.cat}
+                        </span>
+                        {item.group && (
+                          <span style={{ fontSize: 9, color: "#c0c0ba", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                            {item.group}
+                          </span>
+                        )}
+                        {isWiki && (
+                          <a
+                            href="https://docs.google.com/document/d/1NqcBF6rGsHjKZTrMj-dvOuXVM2FaeNPhWF9o78gmmsA/edit?tab=t.0"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="View source document"
+                            style={{
+                              marginLeft: "auto", flexShrink: 0,
+                              fontSize: 14, color: "#c0c0ba",
+                              textDecoration: "none", lineHeight: 1,
+                              transition: "color .15s",
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = "#6b6b66"}
+                            onMouseLeave={(e) => e.currentTarget.style.color = "#c0c0ba"}
+                          >
+                            ⓘ
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Title */}
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "#1a1a16", marginBottom: 5 }}>
+                        {item.n}
+                      </div>
+
+                      {/* Body */}
+                      <div style={{ fontSize: 12, color: "#8a8a84", lineHeight: 1.65 }}>
+                        {isExpanded || !needsMore
+                          ? item.d
+                          : item.d.slice(0, PREVIEW) + "…"}
+                      </div>
+
+                      {/* Expand / Collapse toggle */}
+                      {needsMore && (
+                        <button
+                          onClick={() =>
+                            setExpandedItems((prev) => ({
+                              ...prev,
+                              [itemKey]: !prev[itemKey],
+                            }))
+                          }
+                          style={{
+                            marginTop: 7, background: "none", border: "none",
+                            padding: 0, cursor: "pointer",
+                            fontSize: 11, color: "#9a9a94",
+                            letterSpacing: "0.06em",
+                          }}
+                        >
+                          {isExpanded ? "Show less ↑" : "Read more ↓"}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <>
