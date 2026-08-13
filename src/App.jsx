@@ -21,6 +21,7 @@ export default function App() {
   // UI state
   const [menuOpen,   setMenuOpen]   = useState(false);
   const [section,    setSection]    = useState("Metal");
+  const [kbQuery,    setKbQuery]    = useState("");
   const [panelCount, setPanelCount] = useState(2);
   const [scanning,   setScanning]   = useState(null);
   const [noteIndex,  setNoteIndex]  = useState(null);
@@ -62,6 +63,23 @@ export default function App() {
   );
   const infoMap  = useMemo(() => buildInfoMap(kbData), [kbData]);
   const SECTIONS = Object.keys(infoMap).length ? Object.keys(infoMap) : Object.keys(KB_HEADINGS);
+
+  // KB full-text search across all categories
+  const kbResults = useMemo(() => {
+    const q = kbQuery.trim().toLowerCase();
+    if (!q) return null;
+    const out = [];
+    for (const [cat, data] of Object.entries(infoMap)) {
+      for (const group of data.groups) {
+        for (const item of group.items) {
+          if (item.n.toLowerCase().includes(q) || item.d.toLowerCase().includes(q)) {
+            out.push({ cat, group: group.name, ...item });
+          }
+        }
+      }
+    }
+    return out;
+  }, [kbQuery, infoMap]);
 
   // Array-slot helpers
   const setArr = (setter, i, val) =>
@@ -248,7 +266,8 @@ export default function App() {
         transform: menuOpen ? "translateX(0)" : "translateX(100%)",
         transition: "transform .32s cubic-bezier(.4,0,.2,1)",
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <span style={{ fontSize: 10, letterSpacing: "0.2em", color: "#b0b0aa", textTransform: "uppercase", fontWeight: 400 }}>
             Reference Guide
           </span>
@@ -258,25 +277,100 @@ export default function App() {
           </button>
         </div>
 
-        {/* Section tabs */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 28 }}>
-          {SECTIONS.map((key) => (
-            <button key={key} onClick={() => setSection(key)}
+        {/* Search */}
+        <div style={{ position: "relative", marginBottom: 24 }}>
+          <input
+            value={kbQuery}
+            onChange={(e) => setKbQuery(e.target.value)}
+            placeholder="Search metals, shapes, makers…"
+            style={{
+              width: "100%", boxSizing: "border-box",
+              background: "#fafaf8", border: "1px solid #e0e0da",
+              color: "#1a1a16", fontSize: 13, padding: "10px 36px 10px 12px",
+              borderRadius: 2, outline: "none",
+            }}
+          />
+          {kbQuery && (
+            <button
+              onClick={() => setKbQuery("")}
               style={{
-                padding: "5px 14px",
-                border: `1px solid ${section === key ? "#111111" : "#e0e0da"}`,
-                background: section === key ? "#111111" : "transparent",
-                color: section === key ? "#ffffff" : "#9a9a94",
-                fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase",
-                cursor: "pointer", transition: "all .2s", borderRadius: 2,
+                position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                background: "none", border: "none", color: "#c0c0ba", cursor: "pointer",
+                fontSize: 18, lineHeight: 1, padding: 0,
               }}
             >
-              {key}
+              ×
             </button>
-          ))}
+          )}
         </div>
 
-        <InfoPanel section={section} infoMap={infoMap} />
+        {/* Results mode */}
+        {kbResults !== null ? (
+          <div>
+            <div style={{ fontSize: 11, color: "#b0b0aa", marginBottom: 20 }}>
+              {kbResults.length === 0
+                ? `No results for "${kbQuery}"`
+                : `${kbResults.length} result${kbResults.length === 1 ? "" : "s"}`}
+            </div>
+            {kbResults.map((item, i) => (
+              <div key={i} style={{
+                display: "flex", gap: 12, alignItems: "flex-start",
+                paddingBottom: 16, marginBottom: 16,
+                borderBottom: "1px solid #f0f0ea",
+              }}>
+                {item.img && (
+                  <img
+                    src={item.img} alt={item.n}
+                    style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 2, flexShrink: 0 }}
+                  />
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+                    <span style={{
+                      fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase",
+                      color: "#b0b0aa", background: "#f5f5f0",
+                      padding: "2px 7px", borderRadius: 2,
+                    }}>
+                      {item.cat}
+                    </span>
+                    {item.group && (
+                      <span style={{ fontSize: 9, color: "#c0c0ba", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                        {item.group}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: "#1a1a16", marginBottom: 3 }}>
+                    {item.n}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#8a8a84", lineHeight: 1.6 }}>
+                    {item.d.length > 120 ? item.d.slice(0, 120) + "…" : item.d}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* Section tabs */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 28 }}>
+              {SECTIONS.map((key) => (
+                <button key={key} onClick={() => setSection(key)}
+                  style={{
+                    padding: "5px 14px",
+                    border: `1px solid ${section === key ? "#111111" : "#e0e0da"}`,
+                    background: section === key ? "#111111" : "transparent",
+                    color: section === key ? "#ffffff" : "#9a9a94",
+                    fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase",
+                    cursor: "pointer", transition: "all .2s", borderRadius: 2,
+                  }}
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+            <InfoPanel section={section} infoMap={infoMap} />
+          </>
+        )}
       </div>
 
       {/* ── Main content ── */}
