@@ -347,9 +347,9 @@ export default function App() {
                             {item.group}
                           </span>
                         )}
-                        {isWiki && (
+                        {isWiki && item.link && (
                           <a
-                            href="https://docs.google.com/document/d/1NqcBF6rGsHjKZTrMj-dvOuXVM2FaeNPhWF9o78gmmsA/edit?tab=t.0"
+                            href={item.link}
                             target="_blank"
                             rel="noopener noreferrer"
                             title="View source document"
