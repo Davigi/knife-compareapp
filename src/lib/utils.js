@@ -36,27 +36,16 @@ export const matchesSteelKey = (key, inputNorm) => {
   return before && after;
 };
 // steelPairs: [normalizedKey, steelObject][] sorted longest-first
-// Word-boundary check: short keys (≤4 chars) must not be adjacent to alphanumeric chars
-// e.g. "m2" must not match inside "m2240" or "sg2model"
-const wordMatch = (src, key) => {
-  const idx = src.indexOf(key);
-  if (idx === -1) return false;
-  if (key.length > 4) return true; // long keys: substring is fine
-  const before = idx === 0             || !/[a-z0-9]/.test(src[idx - 1]);
-  const after  = idx + key.length >= src.length || !/[a-z0-9]/.test(src[idx + key.length]);
-  return before && after;
-};
-
 export const detectSteel = (tags = [], title = "", body = "", steelPairs = []) => {
-  // Pass 1 — tags + title (all key lengths, word-boundary guarded for short keys)
+  // Pass 1 — tags + title: generous substring match, sorted longest-first avoids short collisions
   const srcMain = norm([...tags, title].join(" "));
   for (const [key, val] of steelPairs) {
-    if (wordMatch(srcMain, key)) return val;
+    if (srcMain.includes(key)) return val;
   }
-  // Pass 2 — body HTML (min 3 chars, word-boundary guarded)
+  // Pass 2 — body HTML: min 3 chars (catches sg2/sld/skd which are 3 chars)
   const srcBody = norm(body);
   for (const [key, val] of steelPairs) {
-    if (key.length >= 3 && wordMatch(srcBody, key)) return val;
+    if (key.length >= 3 && srcBody.includes(key)) return val;
   }
   return null;
 };
