@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 
 import { KB_HEADINGS } from "./lib/constants.js";
 import {
-  norm, isUrl, extractHandle, detectSteel,
+  norm, isUrl, extractHandle, detectSteel, matchesSteelKey,
   parseSpecs, buildInfoMap, useIsMobile,
 } from "./lib/utils.js";
 
@@ -141,11 +141,11 @@ export default function App() {
         });
       } else {
         // ── Steel name shortcut — check BEFORE hitting any API ──
-        // Requires the ENTIRE normalized input to exactly equal a steel key.
-        // Substring match is intentionally avoided here — "H1001" must not trigger "H1".
+        // Matches if the input is an exact key OR appears as a whole word inside a key.
+        // "Strix" → "spg strix" ✓  |  "H1001" → "h1" ✗ (h1001 not inside "h1")
         if (!isMusashi) {
           const inputNorm = norm(input);
-          const steelDirect = steelPairs.find(([key]) => key === inputNorm)?.[1] ?? null;
+          const steelDirect = steelPairs.find(([key]) => matchesSteelKey(key, inputNorm))?.[1] ?? null;
           if (steelDirect) {
             setArr(setKnives, i, {
               title: steelDirect.label || input, image: null,

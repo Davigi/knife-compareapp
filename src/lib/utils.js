@@ -19,15 +19,44 @@ export const norm = (s) =>
   s.toLowerCase().replace(/#/g, "").replace(/\s+/g, " ").trim();
 
 // ── Steel detection ───────────────────────────────────────────────────────────
+// True if `inputNorm` appears as a whole word within `key` (or is an exact match).
+// Minimum 3 chars to avoid single/double-char noise.
+// "strix"    → matches key "spg strix"  ✓
+// "xeos"     → matches key "vg xeos"    ✓
+// "sg2"      → matches key "sg2"        ✓  (exact)
+// "h1001"    → does NOT match key "h1"  ✓  ("h1" not found in "h1001"… wait wrong direction)
+// Note: we search for inputNorm *inside* key, so "h1001" can never appear inside "h1".
+export const matchesSteelKey = (key, inputNorm) => {
+  if (key === inputNorm) return true;
+  if (inputNorm.length < 3) return false;
+  const idx = key.indexOf(inputNorm);
+  if (idx === -1) return false;
+  const before = idx === 0 || !/[a-z0-9]/.test(key[idx - 1]);
+  const after  = idx + inputNorm.length >= key.length || !/[a-z0-9]/.test(key[idx + inputNorm.length]);
+  return before && after;
+};
 // steelPairs: [normalizedKey, steelObject][] sorted longest-first
+// Word-boundary check: short keys (≤4 chars) must not be adjacent to alphanumeric chars
+// e.g. "m2" must not match inside "m2240" or "sg2model"
+const wordMatch = (src, key) => {
+  const idx = src.indexOf(key);
+  if (idx === -1) return false;
+  if (key.length > 4) return true; // long keys: substring is fine
+  const before = idx === 0             || !/[a-z0-9]/.test(src[idx - 1]);
+  const after  = idx + key.length >= src.length || !/[a-z0-9]/.test(src[idx + key.length]);
+  return before && after;
+};
+
 export const detectSteel = (tags = [], title = "", body = "", steelPairs = []) => {
+  // Pass 1 — tags + title (all key lengths, word-boundary guarded for short keys)
   const srcMain = norm([...tags, title].join(" "));
   for (const [key, val] of steelPairs) {
-    if (srcMain.includes(key)) return val;
+    if (wordMatch(srcMain, key)) return val;
   }
+  // Pass 2 — body HTML (min 3 chars, word-boundary guarded)
   const srcBody = norm(body);
   for (const [key, val] of steelPairs) {
-    if (key.length >= 4 && srcBody.includes(key)) return val;
+    if (key.length >= 3 && wordMatch(srcBody, key)) return val;
   }
   return null;
 };
