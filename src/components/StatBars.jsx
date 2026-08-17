@@ -25,7 +25,7 @@ export default function StatBars({ knives }) {
                 if (v == null) return null;
                 return (
                   <span key={i} style={{ fontSize: 11, color: ACCENTS[i], fontWeight: 500 }}>
-                    {v * 10}
+                    {v}
                     <span style={{ fontSize: 9, color: "#c0c0ba", fontWeight: 300 }}>/100</span>
                   </span>
                 );
@@ -39,7 +39,7 @@ export default function StatBars({ knives }) {
               return (
                 <div key={i} style={{
                   position: "absolute", top: i * 1, height: 2, borderRadius: 1,
-                  width: `${v * 10}%`, background: ACCENTS[i],
+                  width: `${v}%`, background: ACCENTS[i],
                   opacity: 0.8, transition: "width .5s ease",
                 }} />
               );

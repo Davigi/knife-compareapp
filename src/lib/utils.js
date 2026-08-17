@@ -68,11 +68,11 @@ export const computeRanges = (knives) => {
   return Object.fromEntries(
     METRICS.map((m) => {
       const vals = active.map((k) => k.steel[m]);
-      if (vals.length <= 1) return [m, { lo: 0, hi: 10 }];
+      if (vals.length <= 1) return [m, { lo: 0, hi: 100 }];
       const mn = Math.min(...vals);
       const mx = Math.max(...vals);
-      const pad = Math.max(1, (mx - mn) * 0.3);
-      return [m, { lo: Math.max(0, mn - pad), hi: Math.min(10, mx + pad * 0.3) }];
+      const pad = Math.max(5, (mx - mn) * 0.3);
+      return [m, { lo: Math.max(0, mn - pad), hi: Math.min(100, mx + pad * 0.3) }];
     })
   );
 };

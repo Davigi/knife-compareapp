@@ -141,11 +141,11 @@ export default function App() {
         });
       } else {
         // ── Steel name shortcut — check BEFORE hitting any API ──
-        // If the input looks like a known steel name (SG2, VG-10, Aogami, etc.)
-        // show its profile directly without searching the Musashi shop.
-        // This prevents "SG2" from returning a random Musashi knife in a different steel.
+        // Requires the ENTIRE normalized input to exactly equal a steel key.
+        // Substring match is intentionally avoided here — "H1001" must not trigger "H1".
         if (!isMusashi) {
-          const steelDirect = detectSteel([], input, "", steelPairs);
+          const inputNorm = norm(input);
+          const steelDirect = steelPairs.find(([key]) => key === inputNorm)?.[1] ?? null;
           if (steelDirect) {
             setArr(setKnives, i, {
               title: steelDirect.label || input, image: null,

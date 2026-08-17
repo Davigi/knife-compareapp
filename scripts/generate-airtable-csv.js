@@ -2,11 +2,14 @@
  * generate-airtable-csv.js
  *
  * Run once: node scripts/generate-airtable-csv.js
- * Outputs: scripts/steels.csv and scripts/knowledge_base.csv
+ * Outputs: scripts/knowledge_base.csv  (steels.csv is maintained directly)
  * Import both files into Airtable (each CSV = one table).
+ *
+ * steels.csv is the source of truth for steel records — edit it directly.
+ * This script no longer regenerates it; it only validates and reports row count.
  */
 
-import { writeFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -24,11 +27,17 @@ const esc = (v) => {
 const row = (cols) => cols.map(esc).join(",");
 
 // ─── STEELS ───────────────────────────────────────────────────────────────────
-// Canonical records only (no "See X" aliases).
-// The "aliases" field holds every alternate lookup key the app uses to detect
-// a steel name in Shopify product tags / body HTML.
+// steels.csv is maintained directly — edit it to add/update steel records.
+// available=true  → shown in the app
+// available=false → stored in DB, hidden from UI until reviewed
 
-const STEELS = [
+const steelsCsv = readFileSync(join(__dir, "steels.csv"), "utf8");
+const steelLines = steelsCsv.trim().split("\n");
+console.log(`✓ steels.csv — ${steelLines.length - 1} records (header excluded)`);
+
+// ─── (old hardcoded STEELS removed — steels.csv is now the source of truth) ───
+
+const _PLACEHOLDER = [
   {
     label: "White Steel #3", aliases: "white steel 3,shirogami 3,white 3",
     category: "Carbon", maker: "Hitachi", hrc: "59–62",
@@ -278,6 +287,7 @@ const STEELS = [
     available: true,
   },
 ];
+// ↑ _PLACEHOLDER unused — kept only for git diff reference, safe to delete
 
 // ─── KNOWLEDGE BASE ────────────────────────────────────────────────────────────
 
@@ -404,17 +414,6 @@ const KB = [
 ];
 
 // ─── Generate CSVs ─────────────────────────────────────────────────────────────
-
-// steels.csv
-const steelHeaders = ["label","aliases","category","maker","hrc","retention","sharpening","corrosion","chip","c_pct","cr_pct","mo_pct","v_pct","w_pct","co_pct","mn_pct","si_pct","other_comp","description","available"];
-const steelRows = STEELS.map(s => row([
-  s.label, s.aliases, s.category, s.maker, s.hrc,
-  s.retention, s.sharpening, s.corrosion, s.chip,
-  s.c, s.cr, s.mo, s.v, s.w, s.co, s.mn, s.si, s.other,
-  s.description, s.available ? "true" : "false",
-]));
-writeFileSync(join(__dir, "steels.csv"), [row(steelHeaders), ...steelRows].join("\n"), "utf8");
-console.log(`✓ steels.csv — ${STEELS.length} records`);
 
 // knowledge_base.csv
 const kbHeaders = ["category","group","sort_order","title","body","image_url","link","shape_key","published"];
