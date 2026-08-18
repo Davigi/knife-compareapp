@@ -1,15 +1,28 @@
 import { ACCENTS, CAT_TEXT, CAT_BG } from "../lib/constants.js";
-import { fmtPrice, htmlToText } from "../lib/utils.js";
-import { useIsMobile } from "../lib/utils.js";
+import { fmtPrice, htmlToText, parseSpecs, useIsMobile } from "../lib/utils.js";
 import Collapsible from "./Collapsible.jsx";
 import SteelProfile from "./SteelProfile.jsx";
+import CandidateList from "./CandidateList.jsx";
 
+/**
+ * KnifePanel — one comparison slot.
+ *
+ * Now takes a single `slot` object from useKnifeSlots instead of five parallel
+ * props sliced out of five parallel arrays in App.jsx, and renders three states
+ * the old panel could not express: a candidate list when the query was ambiguous,
+ * a notice when something degraded, and a warning when the detected steel is only
+ * a low-confidence guess. That last one matters — a wrong steel used to look
+ * exactly like a right one.
+ */
 export default function KnifePanel({
-  index, knife, input, loading, error,
-  onInput, onSearch, onScan, onRemove, steelUnavailable, onNote,
+  index, slot, onInput, onSearch, onChoose, onScan, onRemove, onNote,
 }) {
+  const { input, knife, loading, error, candidates, notice } = slot;
   const accent  = ACCENTS[index];
   const isMobile = useIsMobile();
+  const specs = knife ? parseSpecs(knife.description) : [];
+  const match = knife?.steelMatch;
+  const lowConfidence = match?.steel && (match.ambiguous || match.confidence < 0.45);
 
   const CURRENCY_SYMBOLS = { JPY: "¥", USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "C$" };
   const currency       = knife?.currency || "JPY";  // Musashi products always JPY
@@ -31,7 +44,7 @@ export default function KnifePanel({
           value={input}
           onChange={(e) => onInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onSearch()}
-          placeholder="URL, handle or reference…"
+          placeholder="Knife name, steel, or link…"
           style={{
             flex: "1 1 140px", minWidth: 0, background: "#fafaf8",
             border: "1px solid #e0e0da", color: "#1a1a16",
@@ -90,13 +103,23 @@ export default function KnifePanel({
         </div>
       )}
 
-      {/* Error */}
+      {/* Error — now specific about what to try next */}
       {error && !loading && (
-        <div style={{ padding: "16px 20px", color: "#c03030", fontSize: 13 }}>⚠ {error}</div>
+        <div style={{ padding: "16px 20px", color: "#c03030", fontSize: 13, lineHeight: 1.6 }}>⚠ {error}</div>
+      )}
+
+      {/* Ambiguous query: offer the options instead of guessing */}
+      {candidates && !loading && (
+        <CandidateList
+          candidates={candidates}
+          accentIndex={index}
+          notice={notice}
+          onChoose={onChoose}
+        />
       )}
 
       {/* Empty state */}
-      {!knife && !loading && !error && (
+      {!knife && !loading && !error && !candidates && (
         <div style={{ padding: "40px 0", textAlign: "center", color: "#d0d0ca", fontSize: 13 }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>◇</div>
           Knife {index + 1}
@@ -137,7 +160,7 @@ export default function KnifePanel({
             </a>
           ) : null}
 
-          {knife.steel && !steelUnavailable && (
+          {knife.steel && (
             <div style={{
               display: "inline-block", padding: "3px 10px", marginBottom: 10,
               background: CAT_BG[knife.steel.cat] || "#f0f0ea",
@@ -148,14 +171,16 @@ export default function KnifePanel({
               {knife.steel.cat}
             </div>
           )}
-          {knife.steel && steelUnavailable && (
+          {/* The detection was weak — say so rather than presenting a guess as fact */}
+          {lowConfidence && (
             <div style={{
-              display: "inline-block", padding: "3px 10px", marginBottom: 10,
-              background: "#fdf0e0", color: "#c08020",
-              fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase",
-              fontWeight: 500, borderRadius: 2,
+              padding: "8px 10px", marginBottom: 10, borderRadius: 2,
+              background: "#fdf8ec", border: "1px solid #f0e4c8",
+              color: "#8a6820", fontSize: 11, lineHeight: 1.5,
             }}>
-              Steel Unavailable
+              {match.ambiguous
+                ? `This product mentions more than one steel. Showing ${match.steel.label}${match.alternatives?.length ? ` — it could also be ${match.alternatives.map((a) => a.steel.label).join(" or ")}.` : "."}`
+                : `Steel identified as ${match.steel.label} from the product text only — treat it as a guess.`}
             </div>
           )}
 
@@ -195,9 +220,9 @@ export default function KnifePanel({
             </div>
           )}
 
-          {knife.specs.length > 0 && (
+          {specs.length > 0 && (
             <Collapsible title="Technical Specifications" open={!isMobile}>
-              {knife.specs.map((s, i) => (
+              {specs.map((s, i) => (
                 <div key={i} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "flex-start",
                   padding: "6px 0", borderBottom: "1px solid #f0f0ea", gap: 12,
@@ -209,12 +234,7 @@ export default function KnifePanel({
             </Collapsible>
           )}
 
-          <SteelProfile
-            steel={steelUnavailable ? null : knife.steel}
-            unavailableLabel={steelUnavailable ? knife.steel?.label : null}
-            tags={knife.tags}
-            isMobile={isMobile}
-          />
+          <SteelProfile steel={knife.steel} tags={knife.tags} isMobile={isMobile} />
 
           <Collapsible title="Description">
             <div style={{ fontSize: 13, color: "#6b6b66", lineHeight: 1.8 }}>
